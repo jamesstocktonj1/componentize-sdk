@@ -1,0 +1,5 @@
+package jamesstocktonj1:componentize-sdk;
+
+world sdk {
+  export wasi:http/incoming-handler@0.2.0;
+}

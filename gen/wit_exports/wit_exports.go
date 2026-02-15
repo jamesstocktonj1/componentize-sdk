@@ -11,10 +11,11 @@
 package wit_exports
 
 import (
+	"runtime"
+
 	"github.com/bytecodealliance/wit-bindgen/wit_runtime"
 	"github.com/jamesstocktonj1/componentize-sdk/gen/export_wasi_http_incoming_handler"
 	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
-	"runtime"
 )
 
 var staticPinner = runtime.Pinner{}

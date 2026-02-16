@@ -13,7 +13,8 @@ import (
 
 func newHttpResponseWriter(response *httptypes.ResponseOutparam) *responseHandler {
 	return &responseHandler{
-		outparam: response,
+		outparam:    response,
+		httpHeaders: http.Header{},
 	}
 }
 
@@ -64,6 +65,7 @@ func (r *responseHandler) WriteHeader(statusCode int) {
 }
 
 func (r *responseHandler) Close() error {
+	r.headerOnce.Do(r.flush)
 	if r.stream == nil {
 		return nil
 	}

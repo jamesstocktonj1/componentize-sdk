@@ -3,6 +3,7 @@
 // This code was generated from the following packages:
 //     wasi:io@0.2.0
 //     wasi:clocks@0.2.0
+//     wasi:otel@0.2.0-rc.1
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0

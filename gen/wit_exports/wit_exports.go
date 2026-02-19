@@ -3,6 +3,7 @@
 // This code was generated from the following packages:
 //     wasi:io@0.2.0
 //     wasi:clocks@0.2.0
+//     wasi:otel@0.2.0-rc.1
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0
@@ -11,11 +12,10 @@
 package wit_exports
 
 import (
-	"runtime"
-
 	"github.com/bytecodealliance/wit-bindgen/wit_runtime"
 	"github.com/jamesstocktonj1/componentize-sdk/gen/export_wasi_http_incoming_handler"
 	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
+	"runtime"
 )
 
 var staticPinner = runtime.Pinner{}

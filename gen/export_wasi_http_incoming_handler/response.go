@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"sync"
 
-	wittypes "github.com/bytecodealliance/wit-bindgen/wit_types"
 	httptypes "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
+	wittypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
 func newHttpResponseWriter(response *httptypes.ResponseOutparam) *responseHandler {

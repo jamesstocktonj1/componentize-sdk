@@ -3,8 +3,8 @@ package export_wasi_http_incoming_handler
 import (
 	"net/http"
 
-	wittypes "github.com/bytecodealliance/wit-bindgen/wit_types"
 	httptypes "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
+	wittypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
 var handler http.HandlerFunc

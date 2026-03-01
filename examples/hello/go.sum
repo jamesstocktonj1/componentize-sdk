@@ -1,2 +1,2 @@
-github.com/bytecodealliance/wit-bindgen/crates/go/src/package v0.51.0 h1:fbwpkAmU6eZnDQpBHrdQwPXi5atE0KSfjU8zwFkClnw=
-github.com/bytecodealliance/wit-bindgen/crates/go/src/package v0.51.0/go.mod h1:MUXxhOBN0hAtqHjc9/9XAEiXcGhcwYL6PeDXkKwVZN0=
+go.bytecodealliance.org/pkg v0.2.0 h1:HWFQu1pbxt7u5uG2sh1gnZd13pHDfwjqieo+oQhoyvE=
+go.bytecodealliance.org/pkg v0.2.0/go.mod h1:OjA+V8g3uUFixeCKFfamm6sYhTJdg8fvwEdJ2GO0GSk=

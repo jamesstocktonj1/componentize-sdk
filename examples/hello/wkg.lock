@@ -10,3 +10,12 @@ registry = "wasi.dev"
 requirement = "=0.2.0"
 version = "0.2.0"
 digest = "sha256:5a568e6e2d60c1ce51220e1833cdd5b88db9f615720edc762a9b4a6f36b383bd"
+
+[[packages]]
+name = "wasi:otel"
+registry = "wasi.dev"
+
+[[packages.versions]]
+requirement = "=0.2.0-rc.1"
+version = "0.2.0-rc.1"
+digest = "sha256:4f4969ab60f39ca84830fe654e51e2bf852097eafb79626f616cd2fba11fdd54"

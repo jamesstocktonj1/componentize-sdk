@@ -36,11 +36,13 @@ jobs:
       - name: Install Wash - ${{ matrix.function }}
         uses: taiki-e/cache-cargo-install-action@v3
         with:
+          tool: wash
           git: https://github.com/wasmCloud/wasmCloud
           tag: wash-v2.0.0-rc.8
       - name: Install componentize-go
         uses: taiki-e/cache-cargo-install-action@v3
         with:
+          tool: componentize-go
           git: https://github.com/bytecodealliance/componentize-go
           tag: canary
       - name: Run Build

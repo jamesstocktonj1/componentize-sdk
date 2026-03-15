@@ -66,25 +66,36 @@ func (r *responseHandler) flush() {
 	var err error
 	r.wasiHeaders, err = httptypes.MapHttpHeader(r.httpHeaders)
 	if err != nil {
-		r.headerErr = err
+		r.sendError(err)
 		return
 	}
 
 	r.response = wasitypes.MakeOutgoingResponse(r.wasiHeaders)
-	r.response.SetStatusCode(uint16(r.statusCode))
+	statusCode := r.statusCode
+	if statusCode == 0 {
+		statusCode = http.StatusOK
+	}
+	r.response.SetStatusCode(uint16(statusCode))
 
 	bodyRes := r.response.Body()
 	if bodyRes.IsErr() {
-		r.headerErr = fmt.Errorf("failed to open response body - %+v", bodyRes.Err())
+		r.sendError(fmt.Errorf("failed to open response body - %+v", bodyRes.Err()))
 		return
 	}
 
 	r.writer, err = httptypes.NewOutgoingBodyWriter(bodyRes.Ok(), r.httpHeaders)
 	if err != nil {
-		r.headerErr = err
+		r.sendError(err)
 		return
 	}
 
 	result := wittypes.Ok[*wasitypes.OutgoingResponse, wasitypes.ErrorCode](r.response)
+	wasitypes.ResponseOutparamSet(r.outparam, result)
+}
+
+func (r *responseHandler) sendError(err error) {
+	r.headerErr = err
+	errCode := wasitypes.MakeErrorCodeInternalError(wittypes.Some(err.Error()))
+	result := wittypes.Err[*wasitypes.OutgoingResponse](errCode)
 	wasitypes.ResponseOutparamSet(r.outparam, result)
 }

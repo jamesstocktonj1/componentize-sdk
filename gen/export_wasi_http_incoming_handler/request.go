@@ -1,17 +1,17 @@
 package export_wasi_http_incoming_handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
-	"sync"
+	"strconv"
 
-	httptypes "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
-	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
+	wasitypes "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/httptypes"
 )
 
-func newHttpRequest(request *httptypes.IncomingRequest) (*http.Request, error) {
+func newHttpRequest(request *wasitypes.IncomingRequest) (*http.Request, error) {
 	method, err := mapMethod(request.Method())
 	if err != nil {
 		return nil, err
@@ -27,9 +27,32 @@ func newHttpRequest(request *httptypes.IncomingRequest) (*http.Request, error) {
 		path = request.PathWithQuery().Some()
 	}
 
-	body, trailers, err := newRequestBodyTrailer(request)
-	if err != nil {
-		return nil, err
+	// Parse headers before consuming the body.
+	headers := request.Headers()
+	httpHeaders := http.Header{}
+	for _, vals := range headers.Entries() {
+		httpHeaders.Set(vals.F0, string(vals.F1))
+	}
+	headers.Drop()
+
+	var body io.ReadCloser = http.NoBody
+	var trailers http.Header
+	contentLength := parseContentLength(httpHeaders)
+	if contentLength > 0 || httpHeaders.Get("Transfer-Encoding") != "" {
+		rawBody, t, err := newRequestBodyTrailer(request)
+		if err != nil {
+			return nil, err
+		}
+		trailers = t
+		// Wrap with a limit so that read-to-EOF calls (e.g. io.ReadAll) return
+		// cleanly after contentLength bytes. The WASI stream for incoming request
+		// bodies in wasmCloud never signals close, so without this limit any
+		// blocking read past the body data hangs indefinitely.
+		if contentLength > 0 {
+			body = &limitedBody{Reader: io.LimitReader(rawBody, contentLength), Closer: rawBody}
+		} else {
+			body = rawBody
+		}
 	}
 
 	url := fmt.Sprintf("http://%s%s", authority, path)
@@ -37,14 +60,9 @@ func newHttpRequest(request *httptypes.IncomingRequest) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header = httpHeaders
 	req.Trailer = trailers
-
-	headers := request.Headers()
-	for _, vals := range headers.Entries() {
-		req.Header.Set(vals.F0, string(vals.F1))
-	}
-	headers.Drop()
-
+	req.ContentLength = contentLength
 	req.Host = authority
 	req.URL.Host = authority
 	req.RequestURI = path
@@ -52,115 +70,56 @@ func newHttpRequest(request *httptypes.IncomingRequest) (*http.Request, error) {
 	return req, nil
 }
 
-func mapMethod(m httptypes.Method) (string, error) {
+// limitedBody pairs an io.LimitReader with the underlying body's Close method.
+type limitedBody struct {
+	io.Reader
+	io.Closer
+}
+
+// parseContentLength returns the Content-Length value, or 0 if absent/invalid.
+func parseContentLength(h http.Header) int64 {
+	cl := h.Get("Content-Length")
+	if cl == "" || cl == "0" {
+		return 0
+	}
+	n, err := strconv.ParseInt(cl, 10, 64)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+func mapMethod(m wasitypes.Method) (string, error) {
 	switch m.Tag() {
-	case httptypes.MethodGet:
+	case wasitypes.MethodGet:
 		return http.MethodGet, nil
-	case httptypes.MethodHead:
+	case wasitypes.MethodHead:
 		return http.MethodHead, nil
-	case httptypes.MethodPost:
+	case wasitypes.MethodPost:
 		return http.MethodPost, nil
-	case httptypes.MethodPut:
+	case wasitypes.MethodPut:
 		return http.MethodPut, nil
-	case httptypes.MethodDelete:
+	case wasitypes.MethodDelete:
 		return http.MethodDelete, nil
-	case httptypes.MethodConnect:
+	case wasitypes.MethodConnect:
 		return http.MethodConnect, nil
-	case httptypes.MethodOptions:
+	case wasitypes.MethodOptions:
 		return http.MethodOptions, nil
-	case httptypes.MethodTrace:
+	case wasitypes.MethodTrace:
 		return http.MethodTrace, nil
-	case httptypes.MethodPatch:
+	case wasitypes.MethodPatch:
 		return http.MethodPatch, nil
-	case httptypes.MethodOther:
+	case wasitypes.MethodOther:
 		return m.Other(), nil
 	default:
 		return "", fmt.Errorf("unknown method type - %+v", m)
 	}
 }
 
-func newRequestBodyTrailer(request *httptypes.IncomingRequest) (io.ReadCloser, http.Header, error) {
+func newRequestBodyTrailer(request *wasitypes.IncomingRequest) (io.ReadCloser, http.Header, error) {
 	consumeRes := request.Consume()
 	if consumeRes.IsErr() {
 		return nil, nil, fmt.Errorf("failed to consume incoming request - %+v", consumeRes.Err())
 	}
-	body := consumeRes.Ok()
-
-	streamRes := body.Stream()
-	if streamRes.IsErr() {
-		return nil, nil, fmt.Errorf("failed to open request body stream - %+v", streamRes.Err())
-	}
-	stream := streamRes.Ok()
-
-	trailers := http.Header{}
-
-	return &requestBody{
-		body:     body,
-		stream:   stream,
-		trailers: trailers,
-	}, trailers, nil
-}
-
-type requestBody struct {
-	body   *httptypes.IncomingBody
-	stream *streams.InputStream
-
-	trailers    http.Header
-	trailerOnce sync.Once
-}
-
-var _ io.ReadCloser = (*requestBody)(nil)
-
-func (r *requestBody) Read(p []byte) (n int, err error) {
-	pollable := r.stream.Subscribe()
-	for !pollable.Ready() {
-		runtime.Gosched()
-	}
-	pollable.Drop()
-
-	readRes := r.stream.Read(uint64(len(p)))
-	if readRes.IsErr() {
-		if readRes.Err().Tag() == streams.StreamErrorClosed {
-			r.trailerOnce.Do(r.parseTrailers)
-			return 0, io.EOF
-		}
-		return 0, fmt.Errorf("failed to read from input stream - %+v", readRes.Err())
-	}
-
-	data := readRes.Ok()
-	copy(p, data)
-	return len(data), nil
-}
-
-func (r *requestBody) parseTrailers() {
-	r.stream.Drop()
-	r.stream = nil
-
-	futureTrailers := httptypes.IncomingBodyFinish(r.body)
-	defer futureTrailers.Drop()
-
-	trailersRes := futureTrailers.Get()
-	if trailersRes.IsNone() || trailersRes.Some().IsErr() || trailersRes.Some().Ok().IsErr() || trailersRes.Some().Ok().Ok().IsNone() {
-		return
-	}
-
-	wasiTrailers := trailersRes.Some().Ok().Ok().Some()
-	for _, vals := range wasiTrailers.Entries() {
-		r.trailers.Set(vals.F0, string(vals.F1))
-	}
-	wasiTrailers.Drop()
-}
-
-func (r *requestBody) Close() error {
-	r.trailerOnce.Do(r.parseTrailers)
-
-	if r.stream != nil {
-		r.stream.Drop()
-	}
-
-	if r.body != nil {
-		r.body.Drop()
-		r.body = nil
-	}
-	return nil
+	return httptypes.NewIncomingBodyReader(context.Background(), consumeRes.Ok())
 }

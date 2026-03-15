@@ -1,20 +1,21 @@
 package httptypes
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 	"sync"
 
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
 // NewIncomingBodyReader wraps a consumed IncomingBody as an io.ReadCloser.
 // The returned http.Header map will be populated with trailers once the body
-// has been fully read or closed.
-func NewIncomingBodyReader(body *types.IncomingBody) (io.ReadCloser, http.Header, error) {
+// has been fully read or closed. The context is used to cancel reads.
+func NewIncomingBodyReader(ctx context.Context, body *types.IncomingBody) (io.ReadCloser, http.Header, error) {
 	streamRes := body.Stream()
 	if streamRes.IsErr() {
 		return nil, nil, fmt.Errorf("failed to open incoming body stream - %+v", streamRes.Err())
@@ -22,6 +23,7 @@ func NewIncomingBodyReader(body *types.IncomingBody) (io.ReadCloser, http.Header
 
 	trailer := http.Header{}
 	return &incomingBody{
+		ctx:     ctx,
 		body:    body,
 		stream:  streamRes.Ok(),
 		trailer: trailer,
@@ -29,6 +31,7 @@ func NewIncomingBodyReader(body *types.IncomingBody) (io.ReadCloser, http.Header
 }
 
 type incomingBody struct {
+	ctx    context.Context
 	body   *types.IncomingBody
 	stream *streams.InputStream
 
@@ -39,10 +42,11 @@ type incomingBody struct {
 var _ io.ReadCloser = (*incomingBody)(nil)
 
 func (r *incomingBody) Read(p []byte) (int, error) {
-	pollable := r.stream.Subscribe()
-	defer pollable.Drop()
-	for !pollable.Ready() {
-		runtime.Gosched()
+	waitable := r.stream.Subscribe()
+	defer waitable.Drop()
+
+	if err := pollable.Await(r.ctx, waitable); err != nil {
+		return 0, err
 	}
 
 	readRes := r.stream.Read(uint64(len(p)))

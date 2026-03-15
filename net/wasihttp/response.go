@@ -1,6 +1,7 @@
 package wasihttp
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 	"github.com/jamesstocktonj1/componentize-sdk/internal/httptypes"
 )
 
-func parseFutureResponse(resp *types.FutureIncomingResponse) (*http.Response, error) {
+func parseFutureResponse(ctx context.Context, resp *types.FutureIncomingResponse) (*http.Response, error) {
 	optResponse := resp.Get()
 	if optResponse.IsNone() {
 		return nil, errors.New("failed to fetch future response - response is empty")
@@ -24,16 +25,16 @@ func parseFutureResponse(resp *types.FutureIncomingResponse) (*http.Response, er
 	if innerResponse.IsErr() {
 		return nil, mapErrorCode(innerResponse.Err())
 	}
-	return parseIncomingResponse(innerResponse.Ok())
+	return parseIncomingResponse(ctx, innerResponse.Ok())
 }
 
-func parseIncomingResponse(resp *types.IncomingResponse) (*http.Response, error) {
+func parseIncomingResponse(ctx context.Context, resp *types.IncomingResponse) (*http.Response, error) {
 	header := http.Header{}
 	for _, v := range resp.Headers().Entries() {
 		header.Add(v.F0, string(v.F1))
 	}
 
-	body, trailer, err := newResponseBody(resp)
+	body, trailer, err := newResponseBody(ctx, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +47,10 @@ func parseIncomingResponse(resp *types.IncomingResponse) (*http.Response, error)
 	}, nil
 }
 
-func newResponseBody(resp *types.IncomingResponse) (io.ReadCloser, http.Header, error) {
+func newResponseBody(ctx context.Context, resp *types.IncomingResponse) (io.ReadCloser, http.Header, error) {
 	bodyRes := resp.Consume()
 	if bodyRes.IsErr() {
 		return nil, nil, errors.New("failed to consume incoming response")
 	}
-	return httptypes.NewIncomingBodyReader(bodyRes.Ok())
+	return httptypes.NewIncomingBodyReader(ctx, bodyRes.Ok())
 }

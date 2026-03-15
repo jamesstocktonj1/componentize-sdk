@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	handler "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_outgoing_handler"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
 type Transport struct{}
@@ -35,11 +36,15 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	// wait for response (+ should handle context cancel)
-	futureResp.Subscribe().Block()
+	// wait for response
+	waitable := futureResp.Subscribe()
+	defer waitable.Drop()
+	if err := pollable.Await(req.Context(), waitable); err != nil {
+		return nil, err
+	}
 
 	// parse response
-	resp, err := parseFutureResponse(futureResp)
+	resp, err := parseFutureResponse(req.Context(), futureResp)
 	if err != nil {
 		return nil, err
 	}

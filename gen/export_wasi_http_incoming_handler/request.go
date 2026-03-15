@@ -1,6 +1,7 @@
 package export_wasi_http_incoming_handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,5 +83,5 @@ func newRequestBodyTrailer(request *wasitypes.IncomingRequest) (io.ReadCloser, h
 	if consumeRes.IsErr() {
 		return nil, nil, fmt.Errorf("failed to consume incoming request - %+v", consumeRes.Err())
 	}
-	return httptypes.NewIncomingBodyReader(consumeRes.Ok())
+	return httptypes.NewIncomingBodyReader(context.Background(), consumeRes.Ok())
 }

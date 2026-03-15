@@ -4,6 +4,6 @@ go 1.25.5
 
 require github.com/jamesstocktonj1/componentize-sdk v0.0.0-00010101000000-000000000000
 
-require go.bytecodealliance.org/pkg v0.2.0 // indirect
+require go.bytecodealliance.org/pkg v0.2.1 // indirect
 
 replace github.com/jamesstocktonj1/componentize-sdk => ../../

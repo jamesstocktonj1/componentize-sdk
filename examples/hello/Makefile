@@ -1,7 +1,7 @@
 .PHONY: fetch
 fetch:
 	@echo "Fetching wit dependencies"
-	@wkg wit fetch
+	@wash wit fetch
 
 .PHONY: build
 build: fetch

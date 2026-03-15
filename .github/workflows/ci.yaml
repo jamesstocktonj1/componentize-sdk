@@ -23,9 +23,10 @@ jobs:
           path: coverage.out
 
   examples-build:
-    name: Build Example
+    name: Build Example - ${{ matrix.function }}
     runs-on: ubuntu-latest
     strategy:
+      fast-faile: false
       matrix:
         function:
           - examples/hello
@@ -33,12 +34,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install Wash - ${{ matrix.function }}
-        uses: taiki-e/cache-cargo-install-action@v3
+      - name: Install wash
+        uses: wasmCloud/setup-wash-action@main
         with:
-          tool: wash
-          git: https://github.com/wasmCloud/wasmCloud
-          tag: wash-v2.0.0-rc.8
+          wash-version: wash-v2.0.0-rc.8
       - name: Install componentize-go
         uses: taiki-e/cache-cargo-install-action@v3
         with:

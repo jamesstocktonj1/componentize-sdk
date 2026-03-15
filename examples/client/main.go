@@ -26,6 +26,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer resp.Body.Close()
 
 	response := struct {
 		Greeting string `json:"greeting"`
@@ -36,7 +37,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
 
 	fmt.Fprintf(w, "Success %d - %s: %s", resp.StatusCode, response.Name, response.Greeting)
 }

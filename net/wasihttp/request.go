@@ -48,7 +48,7 @@ func finishRequestBody(req *http.Request, body *types.OutgoingBody) error {
 	optTrailer := witTypes.None[*types.Fields]()
 	if len(req.Trailer) > 0 {
 		trailer := types.MakeFields()
-		for k, v := range req.Header {
+		for k, v := range req.Trailer {
 			for _, vs := range v {
 				trailer.Append(k, []uint8(vs))
 			}
@@ -69,7 +69,7 @@ func finishRequestBody(req *http.Request, body *types.OutgoingBody) error {
 		buf := make([]byte, 4096)
 		for {
 			n, err := req.Body.Read(buf)
-			if err != nil && err == io.EOF {
+			if err == io.EOF {
 				break
 			} else if err != nil {
 				return err

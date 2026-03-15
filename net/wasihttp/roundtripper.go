@@ -7,8 +7,7 @@ import (
 	handler "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_outgoing_handler"
 )
 
-type Transport struct {
-}
+type Transport struct{}
 
 var _ http.RoundTripper = (*Transport)(nil)
 

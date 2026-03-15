@@ -26,7 +26,7 @@ jobs:
     name: Build Example - ${{ matrix.function }}
     runs-on: ubuntu-latest
     strategy:
-      fast-faile: false
+      fast-fail: false
       matrix:
         function:
           - examples/hello

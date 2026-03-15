@@ -6,6 +6,8 @@
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0
+//     wasi:io@0.2.1
+//     wasi:blobstore@0.2.0-draft
 //     jamesstocktonj1:componentize-sdk
 
 package wasi_http_incoming_handler

@@ -1,6 +1,10 @@
 package jamesstocktonj1:componentize-sdk;
 
 world sdk {
+  /// net/wasihttp
   import wasi:http/outgoing-handler@0.2.0;
   export wasi:http/incoming-handler@0.2.0;
+
+  /// blobstore
+  import wasi:blobstore/blobstore@0.2.0-draft;
 }

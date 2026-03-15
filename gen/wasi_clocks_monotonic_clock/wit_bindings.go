@@ -6,15 +6,17 @@
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0
+//     wasi:io@0.2.1
+//     wasi:blobstore@0.2.0-draft
 //     jamesstocktonj1:componentize-sdk
 
 package wasi_clocks_monotonic_clock
 
 import (
-	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_poll"
+	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_poll"
 )
 
-type Pollable = wasi_io_poll.Pollable
+type Pollable = wasi_io_0_2_0_poll.Pollable
 type Instant = uint64
 type Duration = uint64
 
@@ -41,19 +43,19 @@ func Resolution() uint64 {
 //go:wasmimport wasi:clocks/monotonic-clock@0.2.0 subscribe-instant
 func wasm_import_subscribe_instant(arg0 int64) int32
 
-func SubscribeInstant(when uint64) *wasi_io_poll.Pollable {
+func SubscribeInstant(when uint64) *wasi_io_0_2_0_poll.Pollable {
 
 	result := wasm_import_subscribe_instant(int64(when))
-	return wasi_io_poll.PollableFromOwnHandle(int32(uintptr(result)))
+	return wasi_io_0_2_0_poll.PollableFromOwnHandle(int32(uintptr(result)))
 
 }
 
 //go:wasmimport wasi:clocks/monotonic-clock@0.2.0 subscribe-duration
 func wasm_import_subscribe_duration(arg0 int64) int32
 
-func SubscribeDuration(when uint64) *wasi_io_poll.Pollable {
+func SubscribeDuration(when uint64) *wasi_io_0_2_0_poll.Pollable {
 
 	result := wasm_import_subscribe_duration(int64(when))
-	return wasi_io_poll.PollableFromOwnHandle(int32(uintptr(result)))
+	return wasi_io_0_2_0_poll.PollableFromOwnHandle(int32(uintptr(result)))
 
 }

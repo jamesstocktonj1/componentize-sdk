@@ -1,13 +1,12 @@
 package wasihttp
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/httptypes"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
@@ -44,48 +43,17 @@ func mapUrlScheme(u *url.URL) witTypes.Option[types.Scheme] {
 }
 
 func finishRequestBody(req *http.Request, body *types.OutgoingBody) error {
-	// parse trailers
-	optTrailer := witTypes.None[*types.Fields]()
-	if len(req.Trailer) > 0 {
-		trailer := types.MakeFields()
-		for k, v := range req.Trailer {
-			for _, vs := range v {
-				trailer.Append(k, []uint8(vs))
-			}
-		}
-		optTrailer = witTypes.Some(trailer)
+	writer, err := httptypes.NewOutgoingBodyWriter(body, req.Trailer)
+	if err != nil {
+		return err
 	}
 
-	// parse body
 	if req.Body != nil {
 		defer req.Body.Close()
-
-		streamRes := body.Write()
-		if streamRes.IsErr() {
-			return errors.New("failed to fetch outgoing request body stream")
-		}
-		stream := streamRes.Ok()
-
-		buf := make([]byte, 4096)
-		for {
-			n, err := req.Body.Read(buf)
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return err
-			}
-
-			writeRes := stream.BlockingWriteAndFlush(buf[:n])
-			if writeRes.IsErr() {
-				return fmt.Errorf("failed to write request body - %+v", writeRes.Err())
-			}
+		if _, err := io.Copy(writer, req.Body); err != nil {
+			return err
 		}
 	}
 
-	// finish outgoing body
-	finishRes := types.OutgoingBodyFinish(body, optTrailer)
-	if finishRes.IsErr() {
-		return mapErrorCode(finishRes.Err())
-	}
-	return nil
+	return writer.Close()
 }

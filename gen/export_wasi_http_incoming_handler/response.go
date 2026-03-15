@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"sync"
 
-	httptypes "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
-	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
+	wasitypes "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/httptypes"
 	wittypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-func newHttpResponseWriter(response *httptypes.ResponseOutparam) *responseHandler {
+func newHttpResponseWriter(response *wasitypes.ResponseOutparam) *responseHandler {
 	return &responseHandler{
 		outparam:    response,
 		httpHeaders: http.Header{},
@@ -19,14 +19,13 @@ func newHttpResponseWriter(response *httptypes.ResponseOutparam) *responseHandle
 }
 
 type responseHandler struct {
-	outparam *httptypes.ResponseOutparam
-	response *httptypes.OutgoingResponse
+	outparam *wasitypes.ResponseOutparam
+	response *wasitypes.OutgoingResponse
 
-	wasiHeaders *httptypes.Fields
+	wasiHeaders *wasitypes.Fields
 	httpHeaders http.Header
 
-	body   *httptypes.OutgoingBody
-	stream *streams.OutputStream
+	writer io.WriteCloser
 
 	headerOnce sync.Once
 	headerErr  error
@@ -45,16 +44,7 @@ func (r *responseHandler) Write(b []byte) (int, error) {
 	if r.headerErr != nil {
 		return 0, r.headerErr
 	}
-
-	writeRes := r.stream.Write(b)
-	if writeRes.IsErr() {
-		if writeRes.Err().Tag() == streams.StreamErrorClosed {
-			return 0, io.EOF
-		}
-		return 0, fmt.Errorf("failed to write to response body - %+v", writeRes.Err())
-	}
-	r.stream.BlockingFlush()
-	return len(b), nil
+	return r.writer.Write(b)
 }
 
 func (r *responseHandler) WriteHeader(statusCode int) {
@@ -66,42 +56,21 @@ func (r *responseHandler) WriteHeader(statusCode int) {
 
 func (r *responseHandler) Close() error {
 	r.headerOnce.Do(r.flush)
-	if r.stream == nil {
+	if r.writer == nil {
 		return nil
 	}
-
-	r.stream.BlockingFlush()
-	r.stream.Drop()
-	r.stream = nil
-
-	trailers := wittypes.None[*httptypes.Fields]()
-	if len(r.httpHeaders) > 0 {
-		wasiTrailers, err := mapHttpHeader(r.httpHeaders)
-		if err != nil {
-			return err
-		}
-		trailers = wittypes.Some(wasiTrailers)
-	}
-
-	res := httptypes.OutgoingBodyFinish(r.body, trailers)
-	if res.IsErr() {
-		return fmt.Errorf("failed to set trailers - %+v", res.Err())
-	}
-	return nil
-}
-
-func (r *responseHandler) flushHeader() (err error) {
-	r.wasiHeaders, err = mapHttpHeader(r.httpHeaders)
-	return err
+	return r.writer.Close()
 }
 
 func (r *responseHandler) flush() {
-	if err := r.flushHeader(); err != nil {
+	var err error
+	r.wasiHeaders, err = httptypes.MapHttpHeader(r.httpHeaders)
+	if err != nil {
 		r.headerErr = err
 		return
 	}
 
-	r.response = httptypes.MakeOutgoingResponse(r.wasiHeaders)
+	r.response = wasitypes.MakeOutgoingResponse(r.wasiHeaders)
 	r.response.SetStatusCode(uint16(r.statusCode))
 
 	bodyRes := r.response.Body()
@@ -109,29 +78,13 @@ func (r *responseHandler) flush() {
 		r.headerErr = fmt.Errorf("failed to open response body - %+v", bodyRes.Err())
 		return
 	}
-	r.body = bodyRes.Ok()
 
-	writeRes := r.body.Write()
-	if writeRes.IsErr() {
-		r.headerErr = fmt.Errorf("failed to open response body stream %+v", writeRes.Err())
+	r.writer, err = httptypes.NewOutgoingBodyWriter(bodyRes.Ok(), r.httpHeaders)
+	if err != nil {
+		r.headerErr = err
 		return
 	}
-	r.stream = writeRes.Ok()
 
-	result := wittypes.Ok[*httptypes.OutgoingResponse, httptypes.ErrorCode](r.response)
-	httptypes.ResponseOutparamSet(r.outparam, result)
-}
-
-func mapHttpHeader(h http.Header) (*httptypes.Fields, error) {
-	output := httptypes.MakeFields()
-	for key, vals := range h {
-		values := [][]uint8{}
-		for _, val := range vals {
-			values = append(values, []byte(val))
-		}
-		if res := output.Set(key, values); res.IsErr() {
-			return nil, fmt.Errorf("failed to set header %s - %+v", key, res.Err())
-		}
-	}
-	return output, nil
+	result := wittypes.Ok[*wasitypes.OutgoingResponse, wasitypes.ErrorCode](r.response)
+	wasitypes.ResponseOutparamSet(r.outparam, result)
 }

@@ -1,0 +1,52 @@
+name: CI Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: go1.25.0+auto
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Tests
+        run: |
+          go test ./... -coverprofile=coverage.out
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  examples-build:
+    name: Build Example - ${{ matrix.function }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        function:
+          - examples/hello
+          - examples/client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install wash
+        uses: wasmCloud/setup-wash-action@main
+        with:
+          wash-version: wash-v2.0.0-rc.8
+      - name: Install componentize-go
+        uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: componentize-go
+          git: https://github.com/bytecodealliance/componentize-go
+          tag: canary
+      - name: Run Build
+        working-directory: ${{ matrix.function }}
+        run: |
+          make build

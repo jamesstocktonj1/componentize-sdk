@@ -1,0 +1,99 @@
+package pollable
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+)
+
+// mockPollable implements ReadyChecker and returns true after readyAfter calls.
+type mockPollable struct {
+	readyAfter int
+	callCount  int
+}
+
+func (m *mockPollable) Ready() bool {
+	m.callCount++
+	return m.callCount > m.readyAfter
+}
+
+// mockTimer implements blockTimer and records calls.
+type mockTimer struct {
+	blockCalled int
+	dropCalled  int
+}
+
+func (m *mockTimer) Block() { m.blockCalled++ }
+func (m *mockTimer) Drop()  { m.dropCalled++ }
+
+func TestAwaitWithFactory_ImmediatelyReady(t *testing.T) {
+	p := &mockPollable{readyAfter: 0} // Ready() returns true on the first call
+	timer := &mockTimer{}
+	factory := func(_ time.Duration) blockTimer { return timer }
+
+	err := awaitWithFactory(context.Background(), p, factory)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if timer.blockCalled != 0 {
+		t.Errorf("expected no Block() calls, got %d", timer.blockCalled)
+	}
+}
+
+func TestAwaitWithFactory_ReadyAfterPolling(t *testing.T) {
+	// readyAfter: 2 means Ready() returns false twice, then true
+	p := &mockPollable{readyAfter: 2}
+	timer := &mockTimer{}
+	factory := func(_ time.Duration) blockTimer { return timer }
+
+	err := awaitWithFactory(context.Background(), p, factory)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if timer.blockCalled != 2 {
+		t.Errorf("expected 2 Block() calls, got %d", timer.blockCalled)
+	}
+}
+
+func TestAwaitWithFactory_ContextAlreadyCancelled(t *testing.T) {
+	p := &mockPollable{readyAfter: 100} // never ready within test
+	factory := func(_ time.Duration) blockTimer { return &mockTimer{} }
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel before Await is called
+
+	err := awaitWithFactory(ctx, p, factory)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+}
+
+func TestAwaitWithFactory_ContextDeadlineExceeded(t *testing.T) {
+	p := &mockPollable{readyAfter: 100}
+	factory := func(_ time.Duration) blockTimer { return &mockTimer{} }
+
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	err := awaitWithFactory(ctx, p, factory)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected context.DeadlineExceeded, got %v", err)
+	}
+}
+
+func TestAwaitWithFactory_TimerDurationPassedCorrectly(t *testing.T) {
+	p := &mockPollable{readyAfter: 1}
+	var receivedDuration time.Duration
+	factory := func(d time.Duration) blockTimer {
+		receivedDuration = d
+		return &mockTimer{}
+	}
+
+	if err := awaitWithFactory(context.Background(), p, factory); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if receivedDuration != pollInterval {
+		t.Errorf("expected pollInterval %v, got %v", pollInterval, receivedDuration)
+	}
+}

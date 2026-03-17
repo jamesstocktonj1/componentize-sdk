@@ -10,7 +10,65 @@ import (
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
+	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
+
+// subscription is returned by subscribing to a stream and can report readiness.
+type subscription interface {
+	Ready() bool
+	Drop()
+}
+
+// inputStream abstracts *streams.InputStream for reading incoming body data.
+type inputStream interface {
+	Subscribe() subscription
+	Read(length uint64) witTypes.Result[[]uint8, streams.StreamError]
+	Drop()
+}
+
+// futureTrailersHandle abstracts *types.FutureTrailers.
+type futureTrailersHandle interface {
+	Get() witTypes.Option[witTypes.Result[witTypes.Result[witTypes.Option[*types.Fields], types.ErrorCode], witTypes.Unit]]
+	Drop()
+}
+
+// incomingBodyResource abstracts *types.IncomingBody for use by incomingBody.
+type incomingBodyResource interface {
+	// Finish consumes the body and returns a future for trailers.
+	// Corresponds to types.IncomingBodyFinish.
+	Finish() futureTrailersHandle
+	Drop()
+}
+
+// wasiInputStream wraps *streams.InputStream to implement inputStream.
+type wasiInputStream struct {
+	s *streams.InputStream
+}
+
+func (w *wasiInputStream) Subscribe() subscription {
+	return w.s.Subscribe()
+}
+
+func (w *wasiInputStream) Read(length uint64) witTypes.Result[[]uint8, streams.StreamError] {
+	return w.s.Read(length)
+}
+
+func (w *wasiInputStream) Drop() {
+	w.s.Drop()
+}
+
+// wasiIncomingBody wraps *types.IncomingBody to implement incomingBodyResource.
+type wasiIncomingBody struct {
+	body *types.IncomingBody
+}
+
+func (w *wasiIncomingBody) Finish() futureTrailersHandle {
+	return types.IncomingBodyFinish(w.body)
+}
+
+func (w *wasiIncomingBody) Drop() {
+	w.body.Drop()
+}
 
 // NewIncomingBodyReader wraps a consumed IncomingBody as an io.ReadCloser.
 // The returned http.Header map will be populated with trailers once the body
@@ -24,16 +82,16 @@ func NewIncomingBodyReader(ctx context.Context, body *types.IncomingBody) (io.Re
 	trailer := http.Header{}
 	return &incomingBody{
 		ctx:     ctx,
-		body:    body,
-		stream:  streamRes.Ok(),
+		body:    &wasiIncomingBody{body: body},
+		stream:  &wasiInputStream{s: streamRes.Ok()},
 		trailer: trailer,
 	}, trailer, nil
 }
 
 type incomingBody struct {
 	ctx    context.Context
-	body   *types.IncomingBody
-	stream *streams.InputStream
+	body   incomingBodyResource
+	stream inputStream
 
 	trailer     http.Header
 	trailerOnce sync.Once
@@ -78,7 +136,7 @@ func (r *incomingBody) Close() error {
 }
 
 func (r *incomingBody) parseTrailers() {
-	futureTrailers := types.IncomingBodyFinish(r.body)
+	futureTrailers := r.body.Finish()
 	defer futureTrailers.Drop()
 	r.body = nil
 

@@ -11,6 +11,45 @@ import (
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
+// outputStream abstracts *streams.OutputStream for writing outgoing body data.
+type outputStream interface {
+	BlockingWriteAndFlush(contents []uint8) witTypes.Result[witTypes.Unit, streams.StreamError]
+	BlockingFlush() witTypes.Result[witTypes.Unit, streams.StreamError]
+	Drop()
+}
+
+// outgoingBodyResource abstracts *types.OutgoingBody.
+// Finish corresponds to types.OutgoingBodyFinish.
+type outgoingBodyResource interface {
+	Finish(trailers witTypes.Option[*types.Fields]) witTypes.Result[witTypes.Unit, types.ErrorCode]
+}
+
+// wasiOutputStream wraps *streams.OutputStream to implement outputStream.
+type wasiOutputStream struct {
+	s *streams.OutputStream
+}
+
+func (w *wasiOutputStream) BlockingWriteAndFlush(contents []uint8) witTypes.Result[witTypes.Unit, streams.StreamError] {
+	return w.s.BlockingWriteAndFlush(contents)
+}
+
+func (w *wasiOutputStream) BlockingFlush() witTypes.Result[witTypes.Unit, streams.StreamError] {
+	return w.s.BlockingFlush()
+}
+
+func (w *wasiOutputStream) Drop() {
+	w.s.Drop()
+}
+
+// wasiOutgoingBody wraps *types.OutgoingBody to implement outgoingBodyResource.
+type wasiOutgoingBody struct {
+	body *types.OutgoingBody
+}
+
+func (w *wasiOutgoingBody) Finish(trailers witTypes.Option[*types.Fields]) witTypes.Result[witTypes.Unit, types.ErrorCode] {
+	return types.OutgoingBodyFinish(w.body, trailers)
+}
+
 // NewOutgoingBodyWriter wraps an OutgoingBody as an outgoingBody.
 // The trailer map is read at Close time, so callers may populate it after
 // construction. Passing nil means no trailers will be sent.
@@ -21,15 +60,15 @@ func NewOutgoingBodyWriter(body *types.OutgoingBody, trailer http.Header) (io.Wr
 	}
 
 	return &outgoingBody{
-		body:    body,
-		stream:  streamRes.Ok(),
+		body:    &wasiOutgoingBody{body: body},
+		stream:  &wasiOutputStream{s: streamRes.Ok()},
 		trailer: trailer,
 	}, nil
 }
 
 type outgoingBody struct {
-	body    *types.OutgoingBody
-	stream  *streams.OutputStream
+	body    outgoingBodyResource
+	stream  outputStream
 	trailer http.Header
 
 	closeOnce sync.Once
@@ -72,7 +111,7 @@ func (w *outgoingBody) close() error {
 		optTrailer = witTypes.Some(wasiTrailer)
 	}
 
-	finishRes := types.OutgoingBodyFinish(w.body, optTrailer)
+	finishRes := w.body.Finish(optTrailer)
 	if finishRes.IsErr() {
 		return fmt.Errorf("failed to finish outgoing body - %+v", finishRes.Err())
 	}

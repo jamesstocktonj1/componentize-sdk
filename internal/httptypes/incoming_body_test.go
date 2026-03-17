@@ -10,31 +10,24 @@ import (
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-// alwaysReadySubscription implements subscription and is immediately ready.
-type alwaysReadySubscription struct{}
+// mockSubscription implements subscription. Set ready to control readiness.
+type mockSubscription struct {
+	ready bool
+}
 
-func (s *alwaysReadySubscription) Ready() bool { return true }
-func (s *alwaysReadySubscription) Drop()       {}
-
-// neverReadySubscription implements subscription and is never ready.
-type neverReadySubscription struct{}
-
-func (s *neverReadySubscription) Ready() bool { return false }
-func (s *neverReadySubscription) Drop()       {}
+func (s *mockSubscription) Ready() bool { return s.ready }
+func (s *mockSubscription) Drop()       {}
 
 // mockInputStream implements inputStream for testing.
 type mockInputStream struct {
-	data          []byte
-	readPos       int
-	dropCalled    bool
-	subscribeFunc func() subscription
+	data       []byte
+	readPos    int
+	dropCalled bool
+	sub        mockSubscription
 }
 
 func (m *mockInputStream) Subscribe() subscription {
-	if m.subscribeFunc != nil {
-		return m.subscribeFunc()
-	}
-	return &alwaysReadySubscription{}
+	return &m.sub
 }
 
 func (m *mockInputStream) Read(length uint64) witTypes.Result[[]uint8, streams.StreamError] {
@@ -74,7 +67,10 @@ func (m *mockIncomingBodyResource) Finish() futureTrailersHandle { return m.futu
 func (m *mockIncomingBodyResource) Drop()                        { m.dropCalled = true }
 
 func newTestIncomingBody(ctx context.Context, data []byte) (*incomingBody, *mockInputStream, *mockIncomingBodyResource) {
-	stream := &mockInputStream{data: data}
+	stream := &mockInputStream{
+		data: data,
+		sub:  mockSubscription{ready: true},
+	}
 	future := &mockFutureTrailers{}
 	bodyRes := &mockIncomingBodyResource{future: future}
 
@@ -87,101 +83,94 @@ func newTestIncomingBody(ctx context.Context, data []byte) (*incomingBody, *mock
 	return ib, stream, bodyRes
 }
 
-func TestIncomingBodyRead_ReadsData(t *testing.T) {
-	ib, _, _ := newTestIncomingBody(context.Background(), []byte("hello world"))
+func TestIncomingBodyRead(t *testing.T) {
+	t.Run("reads data", func(t *testing.T) {
+		ib, _, _ := newTestIncomingBody(context.Background(), []byte("hello world"))
 
-	buf := make([]byte, 64)
-	n, err := ib.Read(buf)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if n != 11 {
-		t.Errorf("expected 11 bytes read, got %d", n)
-	}
-	if string(buf[:n]) != "hello world" {
-		t.Errorf("expected %q, got %q", "hello world", string(buf[:n]))
-	}
+		buf := make([]byte, 64)
+		n, err := ib.Read(buf)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if n != 11 {
+			t.Errorf("expected 11 bytes, got %d", n)
+		}
+		if string(buf[:n]) != "hello world" {
+			t.Errorf("expected %q, got %q", "hello world", string(buf[:n]))
+		}
+	})
+
+	t.Run("returns EOF on empty stream", func(t *testing.T) {
+		ib, _, _ := newTestIncomingBody(context.Background(), []byte{})
+
+		_, err := ib.Read(make([]byte, 64))
+		if err != io.EOF {
+			t.Fatalf("expected io.EOF, got %v", err)
+		}
+	})
+
+	t.Run("full read then EOF", func(t *testing.T) {
+		ib, _, _ := newTestIncomingBody(context.Background(), []byte("abc"))
+
+		buf := make([]byte, 3)
+		n, err := ib.Read(buf)
+		if err != nil || n != 3 || string(buf[:n]) != "abc" {
+			t.Fatalf("first read: n=%d err=%v data=%q", n, err, string(buf[:n]))
+		}
+
+		_, err = ib.Read(buf)
+		if err != io.EOF {
+			t.Fatalf("expected io.EOF on second read, got %v", err)
+		}
+	})
+
+	t.Run("cancelled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		ib, stream, _ := newTestIncomingBody(ctx, []byte("hello"))
+		stream.sub.ready = false // force Await to check ctx before proceeding
+
+		_, err := ib.Read(make([]byte, 64))
+		if err != context.Canceled {
+			t.Fatalf("expected context.Canceled, got %v", err)
+		}
+	})
+
+	t.Run("EOF triggers trailer parsing", func(t *testing.T) {
+		ib, _, bodyRes := newTestIncomingBody(context.Background(), []byte{})
+
+		_, err := ib.Read(make([]byte, 64))
+		if err != io.EOF {
+			t.Fatalf("expected io.EOF, got %v", err)
+		}
+		if !bodyRes.future.dropCalled {
+			t.Error("expected future trailers to be dropped after EOF")
+		}
+	})
 }
 
-func TestIncomingBodyRead_ReturnsEOFOnEmptyStream(t *testing.T) {
-	ib, _, _ := newTestIncomingBody(context.Background(), []byte{})
+func TestIncomingBodyClose(t *testing.T) {
+	t.Run("drops stream", func(t *testing.T) {
+		ib, stream, _ := newTestIncomingBody(context.Background(), []byte("data"))
 
-	buf := make([]byte, 64)
-	_, err := ib.Read(buf)
-	if err != io.EOF {
-		t.Fatalf("expected io.EOF, got %v", err)
-	}
-}
+		if err := ib.Close(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !stream.dropCalled {
+			t.Error("expected stream.Drop() to be called")
+		}
+	})
 
-func TestIncomingBodyRead_FullReadThenEOF(t *testing.T) {
-	ib, _, _ := newTestIncomingBody(context.Background(), []byte("abc"))
+	t.Run("calls finish once", func(t *testing.T) {
+		ib, _, bodyRes := newTestIncomingBody(context.Background(), []byte("data"))
 
-	buf := make([]byte, 3)
-	n, err := ib.Read(buf)
-	if err != nil || n != 3 {
-		t.Fatalf("first read: n=%d err=%v", n, err)
-	}
-	if string(buf[:n]) != "abc" {
-		t.Errorf("expected %q, got %q", "abc", string(buf[:n]))
-	}
+		// Closing twice must not panic; trailerOnce ensures Finish runs once.
+		_ = ib.Close()
+		_ = ib.Close()
 
-	_, err = ib.Read(buf)
-	if err != io.EOF {
-		t.Fatalf("expected io.EOF on second read, got %v", err)
-	}
-}
-
-func TestIncomingBodyRead_CancelledContext(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // cancel before any read
-
-	ib, _, _ := newTestIncomingBody(ctx, []byte("hello"))
-	// Override Subscribe to return a never-ready subscription so Await checks ctx.
-	ib.stream.(*mockInputStream).subscribeFunc = func() subscription {
-		return &neverReadySubscription{}
-	}
-
-	buf := make([]byte, 64)
-	_, err := ib.Read(buf)
-	if err != context.Canceled {
-		t.Fatalf("expected context.Canceled, got %v", err)
-	}
-}
-
-func TestIncomingBodyClose_DropsStream(t *testing.T) {
-	ib, stream, _ := newTestIncomingBody(context.Background(), []byte("data"))
-
-	if err := ib.Close(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !stream.dropCalled {
-		t.Error("expected stream.Drop() to be called on Close")
-	}
-}
-
-func TestIncomingBodyClose_CallsFinishOnce(t *testing.T) {
-	ib, _, bodyRes := newTestIncomingBody(context.Background(), []byte("data"))
-
-	// Closing twice must not panic (trailerOnce ensures Finish is called once).
-	_ = ib.Close()
-	_ = ib.Close()
-
-	if !bodyRes.future.dropCalled {
-		t.Error("expected future trailers to be dropped")
-	}
-}
-
-func TestIncomingBodyRead_EOFTriggersTrailerParsing(t *testing.T) {
-	ib, _, bodyRes := newTestIncomingBody(context.Background(), []byte{})
-
-	buf := make([]byte, 64)
-	_, err := ib.Read(buf)
-	if err != io.EOF {
-		t.Fatalf("expected io.EOF, got %v", err)
-	}
-
-	// EOF on read should have called Finish (via trailerOnce).
-	if !bodyRes.future.dropCalled {
-		t.Error("expected future trailers to be dropped after EOF read")
-	}
+		if !bodyRes.future.dropCalled {
+			t.Error("expected future trailers to be dropped")
+		}
+	})
 }

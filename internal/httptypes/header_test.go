@@ -10,13 +10,8 @@ import (
 
 // mockFieldsSetter implements FieldsSetter for testing.
 type mockFieldsSetter struct {
-	headers map[string][][]uint8
-	// errOnKey causes Set to return an error when this key is set.
-	errOnKey string
-}
-
-func newMockFieldsSetter() *mockFieldsSetter {
-	return &mockFieldsSetter{headers: make(map[string][][]uint8)}
+	headers  map[string][][]uint8
+	errOnKey string // if non-empty, Set returns an error for this key
 }
 
 func (m *mockFieldsSetter) Set(name string, value [][]uint8) witTypes.Result[witTypes.Unit, types.HeaderError] {
@@ -27,89 +22,83 @@ func (m *mockFieldsSetter) Set(name string, value [][]uint8) witTypes.Result[wit
 	return witTypes.Ok[witTypes.Unit, types.HeaderError](witTypes.Unit{})
 }
 
-func TestMapHttpHeaderTo_EmptyHeader(t *testing.T) {
-	mock := newMockFieldsSetter()
-	if err := mapHttpHeaderTo(http.Header{}, mock); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(mock.headers) != 0 {
-		t.Errorf("expected no headers set, got %v", mock.headers)
-	}
-}
-
-func TestMapHttpHeaderTo_SingleHeader(t *testing.T) {
-	mock := newMockFieldsSetter()
-	h := http.Header{"Content-Type": {"application/json"}}
-
-	if err := mapHttpHeaderTo(h, mock); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	vals, ok := mock.headers["Content-Type"]
-	if !ok {
-		t.Fatal("Content-Type header not set")
-	}
-	if len(vals) != 1 || string(vals[0]) != "application/json" {
-		t.Errorf("unexpected Content-Type values: %v", vals)
-	}
-}
-
-func TestMapHttpHeaderTo_MultipleValues(t *testing.T) {
-	mock := newMockFieldsSetter()
-	h := http.Header{"Accept": {"text/html", "application/json"}}
-
-	if err := mapHttpHeaderTo(h, mock); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	vals, ok := mock.headers["Accept"]
-	if !ok {
-		t.Fatal("Accept header not set")
-	}
-	if len(vals) != 2 {
-		t.Errorf("expected 2 Accept values, got %d", len(vals))
-	}
-}
-
-func TestMapHttpHeaderTo_MultipleHeaders(t *testing.T) {
-	mock := newMockFieldsSetter()
-	h := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {"Bearer token"},
-		"X-Request-Id":  {"abc-123"},
-	}
-
-	if err := mapHttpHeaderTo(h, mock); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(mock.headers) != 3 {
-		t.Errorf("expected 3 headers, got %d", len(mock.headers))
-	}
-}
-
-func TestMapHttpHeaderTo_ValuesAreByteSlices(t *testing.T) {
-	mock := newMockFieldsSetter()
-	h := http.Header{"X-Custom": {"hello"}}
-
-	if err := mapHttpHeaderTo(h, mock); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+func TestMapHttpHeaderTo(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    http.Header
+		errOnKey string
+		wantErr  bool
+		checkFn  func(t *testing.T, m *mockFieldsSetter)
+	}{
+		{
+			name:  "empty header",
+			input: http.Header{},
+			checkFn: func(t *testing.T, m *mockFieldsSetter) {
+				if len(m.headers) != 0 {
+					t.Errorf("expected no headers set, got %v", m.headers)
+				}
+			},
+		},
+		{
+			name:  "single header single value",
+			input: http.Header{"Content-Type": {"application/json"}},
+			checkFn: func(t *testing.T, m *mockFieldsSetter) {
+				vals, ok := m.headers["Content-Type"]
+				if !ok {
+					t.Fatal("Content-Type not set")
+				}
+				if len(vals) != 1 || string(vals[0]) != "application/json" {
+					t.Errorf("unexpected Content-Type values: %v", vals)
+				}
+			},
+		},
+		{
+			name:  "single header multiple values",
+			input: http.Header{"Accept": {"text/html", "application/json"}},
+			checkFn: func(t *testing.T, m *mockFieldsSetter) {
+				vals, ok := m.headers["Accept"]
+				if !ok {
+					t.Fatal("Accept not set")
+				}
+				if len(vals) != 2 {
+					t.Errorf("expected 2 values, got %d", len(vals))
+				}
+			},
+		},
+		{
+			name: "multiple headers",
+			input: http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {"Bearer token"},
+				"X-Request-Id":  {"abc-123"},
+			},
+			checkFn: func(t *testing.T, m *mockFieldsSetter) {
+				if len(m.headers) != 3 {
+					t.Errorf("expected 3 headers, got %d", len(m.headers))
+				}
+			},
+		},
+		{
+			name:     "set error is propagated",
+			input:    http.Header{"X-Invalid": {"value"}},
+			errOnKey: "X-Invalid",
+			wantErr:  true,
+		},
 	}
 
-	vals := mock.headers["X-Custom"]
-	if len(vals) != 1 || string(vals[0]) != "hello" {
-		t.Errorf("expected []byte(\"hello\"), got %v", vals)
-	}
-}
-
-func TestMapHttpHeaderTo_SetReturnsError(t *testing.T) {
-	mock := &mockFieldsSetter{
-		headers:  make(map[string][][]uint8),
-		errOnKey: "X-Invalid",
-	}
-	h := http.Header{"X-Invalid": {"value"}}
-
-	err := mapHttpHeaderTo(h, mock)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &mockFieldsSetter{
+				headers:  make(map[string][][]uint8),
+				errOnKey: tt.errOnKey,
+			}
+			err := mapHttpHeaderTo(tt.input, mock)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("wantErr=%v, got err=%v", tt.wantErr, err)
+			}
+			if !tt.wantErr && tt.checkFn != nil {
+				tt.checkFn(t, mock)
+			}
+		})
 	}
 }

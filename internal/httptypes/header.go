@@ -27,12 +27,3 @@ func mapHttpHeaderTo(h http.Header, output FieldsSetter) error {
 	}
 	return nil
 }
-
-// MapHttpHeader converts an http.Header into a WASI Fields resource.
-func MapHttpHeader(h http.Header) (*types.Fields, error) {
-	output := types.MakeFields()
-	if err := mapHttpHeaderTo(h, output); err != nil {
-		return nil, err
-	}
-	return output, nil
-}

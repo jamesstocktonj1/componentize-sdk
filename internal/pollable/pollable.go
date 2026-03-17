@@ -4,8 +4,6 @@ import (
 	"context"
 	"runtime"
 	"time"
-
-	monotonicclock "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_clocks_monotonic_clock"
 )
 
 const pollInterval = 10 * time.Microsecond
@@ -25,9 +23,9 @@ type blockTimer interface {
 // timerFactory creates a blockTimer for a given duration.
 type timerFactory func(d time.Duration) blockTimer
 
-var defaultTimerFactory timerFactory = func(d time.Duration) blockTimer {
-	return monotonicclock.SubscribeDuration(monotonicclock.Duration(d))
-}
+// defaultTimerFactory is initialised in pollable_wasi.go on WASM builds.
+// It is nil on native builds; Await must not be called outside of WASM.
+var defaultTimerFactory timerFactory
 
 // Await blocks until the pollable is ready or the context is cancelled.
 // Returns ctx.Err() if the context is cancelled before the pollable is ready.

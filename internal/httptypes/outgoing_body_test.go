@@ -1,10 +1,11 @@
 package httptypes
 
 import (
+	"errors"
 	"io"
+	"net/http"
 	"testing"
 
-	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
@@ -34,18 +35,15 @@ func (m *mockOutputStream) Drop() { m.dropCalled = true }
 
 // mockOutgoingBodyResource implements outgoingBodyResource for testing.
 type mockOutgoingBodyResource struct {
-	finished     bool
-	lastTrailers witTypes.Option[*types.Fields]
-	finishErr    *types.ErrorCode
+	finishCalled bool
+	lastTrailer  http.Header
+	finishErr    error
 }
 
-func (m *mockOutgoingBodyResource) Finish(trailers witTypes.Option[*types.Fields]) witTypes.Result[witTypes.Unit, types.ErrorCode] {
-	m.finished = true
-	m.lastTrailers = trailers
-	if m.finishErr != nil {
-		return witTypes.Err[witTypes.Unit, types.ErrorCode](*m.finishErr)
-	}
-	return witTypes.Ok[witTypes.Unit, types.ErrorCode](witTypes.Unit{})
+func (m *mockOutgoingBodyResource) FinishWithTrailers(trailer http.Header) error {
+	m.finishCalled = true
+	m.lastTrailer = trailer
+	return m.finishErr
 }
 
 func newTestOutgoingBody() (*outgoingBody, *mockOutputStream, *mockOutgoingBodyResource) {
@@ -108,8 +106,8 @@ func TestOutgoingBodyClose(t *testing.T) {
 		if !stream.dropCalled {
 			t.Error("expected stream.Drop() to be called")
 		}
-		if !bodyRes.finished {
-			t.Error("expected body.Finish() to be called")
+		if !bodyRes.finishCalled {
+			t.Error("expected body.FinishWithTrailers() to be called")
 		}
 	})
 
@@ -125,25 +123,24 @@ func TestOutgoingBodyClose(t *testing.T) {
 		}
 	})
 
-	t.Run("nil trailers passes None to Finish", func(t *testing.T) {
+	t.Run("nil trailer passed through to Finish", func(t *testing.T) {
 		ob, _, bodyRes := newTestOutgoingBody()
 		ob.trailer = nil
 
 		if err := ob.Close(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if !bodyRes.lastTrailers.IsNone() {
-			t.Error("expected None trailers when trailer header is nil")
+		if bodyRes.lastTrailer != nil {
+			t.Errorf("expected nil trailer, got %v", bodyRes.lastTrailer)
 		}
 	})
 
 	t.Run("finish error is propagated", func(t *testing.T) {
 		ob, _, bodyRes := newTestOutgoingBody()
-		errCode := types.MakeErrorCodeInternalError(witTypes.None[string]())
-		bodyRes.finishErr = &errCode
+		bodyRes.finishErr = errors.New("finish failed")
 
 		if err := ob.Close(); err == nil {
-			t.Fatal("expected error from Finish, got nil")
+			t.Fatal("expected error from FinishWithTrailers, got nil")
 		}
 	})
 }

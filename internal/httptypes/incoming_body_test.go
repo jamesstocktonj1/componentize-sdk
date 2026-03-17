@@ -3,9 +3,9 @@ package httptypes
 import (
 	"context"
 	"io"
+	"net/http"
 	"testing"
 
-	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
@@ -46,33 +46,21 @@ func (m *mockInputStream) Read(length uint64) witTypes.Result[[]uint8, streams.S
 
 func (m *mockInputStream) Drop() { m.dropCalled = true }
 
-// mockFutureTrailers implements futureTrailersHandle returning no trailers.
-type mockFutureTrailers struct {
-	dropCalled bool
-}
-
-func (m *mockFutureTrailers) Get() witTypes.Option[witTypes.Result[witTypes.Result[witTypes.Option[*types.Fields], types.ErrorCode], witTypes.Unit]] {
-	return witTypes.None[witTypes.Result[witTypes.Result[witTypes.Option[*types.Fields], types.ErrorCode], witTypes.Unit]]()
-}
-
-func (m *mockFutureTrailers) Drop() { m.dropCalled = true }
-
 // mockIncomingBodyResource implements incomingBodyResource for testing.
 type mockIncomingBodyResource struct {
-	future     *mockFutureTrailers
-	dropCalled bool
+	finishCalled bool
+	dropCalled   bool
 }
 
-func (m *mockIncomingBodyResource) Finish() futureTrailersHandle { return m.future }
-func (m *mockIncomingBodyResource) Drop()                        { m.dropCalled = true }
+func (m *mockIncomingBodyResource) FinishAndGetTrailers(_ http.Header) { m.finishCalled = true }
+func (m *mockIncomingBodyResource) Drop()                              { m.dropCalled = true }
 
 func newTestIncomingBody(ctx context.Context, data []byte) (*incomingBody, *mockInputStream, *mockIncomingBodyResource) {
 	stream := &mockInputStream{
 		data: data,
 		sub:  mockSubscription{ready: true},
 	}
-	future := &mockFutureTrailers{}
-	bodyRes := &mockIncomingBodyResource{future: future}
+	bodyRes := &mockIncomingBodyResource{}
 
 	ib := &incomingBody{
 		ctx:     ctx,
@@ -144,8 +132,8 @@ func TestIncomingBodyRead(t *testing.T) {
 		if err != io.EOF {
 			t.Fatalf("expected io.EOF, got %v", err)
 		}
-		if !bodyRes.future.dropCalled {
-			t.Error("expected future trailers to be dropped after EOF")
+		if !bodyRes.finishCalled {
+			t.Error("expected FinishAndGetTrailers to be called after EOF")
 		}
 	})
 }
@@ -169,8 +157,8 @@ func TestIncomingBodyClose(t *testing.T) {
 		_ = ib.Close()
 		_ = ib.Close()
 
-		if !bodyRes.future.dropCalled {
-			t.Error("expected future trailers to be dropped")
+		if !bodyRes.finishCalled {
+			t.Error("expected FinishAndGetTrailers to be called")
 		}
 	})
 }

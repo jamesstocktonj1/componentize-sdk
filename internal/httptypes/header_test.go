@@ -23,7 +23,7 @@ func (m *mockFieldsSetter) Set(name string, value [][]uint8) witTypes.Result[wit
 }
 
 func TestMapHttpHeaderTo(t *testing.T) {
-	tests := []struct {
+	testMatrix := []struct {
 		name     string
 		input    http.Header
 		errOnKey string
@@ -86,7 +86,7 @@ func TestMapHttpHeaderTo(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, tt := range testMatrix {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &mockFieldsSetter{
 				headers:  make(map[string][][]uint8),

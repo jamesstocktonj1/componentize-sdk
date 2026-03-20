@@ -1,0 +1,67 @@
+name: Release Workflow
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag name'
+        required: true
+        default: 'dev'
+
+jobs:
+  build-examples:
+    name: Build Example - ${{ matrix.function }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        function:
+          - examples/hello
+          - examples/client
+          - examples/blobby
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install wash
+        uses: wasmCloud/setup-wash-action@main
+        with:
+          wash-version: wash-v2.0.0-rc.8
+      - name: Install componentize-go
+        uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: componentize-go
+          git: https://github.com/bytecodealliance/componentize-go
+          tag: canary
+      - name: Run Build
+        working-directory: ${{ matrix.function }}
+        run: make build
+      - name: Get function name
+        id: fn
+        run: echo "name=$(basename ${{ matrix.function }})" >> $GITHUB_OUTPUT
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.fn.outputs.name }}
+          path: ${{ matrix.function }}/build/*.wasm
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build-examples
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          files: artifacts/*.wasm
+          generate_release_notes: true

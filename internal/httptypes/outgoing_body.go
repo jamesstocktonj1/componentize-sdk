@@ -6,30 +6,27 @@ import (
 	"net/http"
 	"sync"
 
-	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-// NewOutgoingBodyWriter wraps an OutgoingBody as an outgoingBody.
-// The trailer map is read at Close time, so callers may populate it after
-// construction. Passing nil means no trailers will be sent.
-func NewOutgoingBodyWriter(body *types.OutgoingBody, trailer http.Header) (io.WriteCloser, error) {
-	streamRes := body.Write()
-	if streamRes.IsErr() {
-		return nil, fmt.Errorf("failed to open outgoing body stream - %+v", streamRes.Err())
-	}
+// outputStream abstracts *streams.OutputStream for writing outgoing body data.
+type outputStream interface {
+	BlockingWriteAndFlush(contents []uint8) witTypes.Result[witTypes.Unit, streams.StreamError]
+	BlockingFlush() witTypes.Result[witTypes.Unit, streams.StreamError]
+	Drop()
+}
 
-	return &outgoingBody{
-		body:    body,
-		stream:  streamRes.Ok(),
-		trailer: trailer,
-	}, nil
+// outgoingBodyResource abstracts *types.OutgoingBody.
+// FinishWithTrailers corresponds to types.OutgoingBodyFinish, converting the
+// trailer http.Header to WASI format internally.
+type outgoingBodyResource interface {
+	FinishWithTrailers(trailer http.Header) error
 }
 
 type outgoingBody struct {
-	body    *types.OutgoingBody
-	stream  *streams.OutputStream
+	body    outgoingBodyResource
+	stream  outputStream
 	trailer http.Header
 
 	closeOnce sync.Once
@@ -62,19 +59,5 @@ func (w *outgoingBody) close() error {
 	w.stream.BlockingFlush()
 	w.stream.Drop()
 	w.stream = nil
-
-	optTrailer := witTypes.None[*types.Fields]()
-	if len(w.trailer) > 0 {
-		wasiTrailer, err := MapHttpHeader(w.trailer)
-		if err != nil {
-			return err
-		}
-		optTrailer = witTypes.Some(wasiTrailer)
-	}
-
-	finishRes := types.OutgoingBodyFinish(w.body, optTrailer)
-	if finishRes.IsErr() {
-		return fmt.Errorf("failed to finish outgoing body - %+v", finishRes.Err())
-	}
-	return nil
+	return w.body.FinishWithTrailers(w.trailer)
 }

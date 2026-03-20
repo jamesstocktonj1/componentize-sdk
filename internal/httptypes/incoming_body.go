@@ -7,33 +7,37 @@ import (
 	"net/http"
 	"sync"
 
-	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
+	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-// NewIncomingBodyReader wraps a consumed IncomingBody as an io.ReadCloser.
-// The returned http.Header map will be populated with trailers once the body
-// has been fully read or closed. The context is used to cancel reads.
-func NewIncomingBodyReader(ctx context.Context, body *types.IncomingBody) (io.ReadCloser, http.Header, error) {
-	streamRes := body.Stream()
-	if streamRes.IsErr() {
-		return nil, nil, fmt.Errorf("failed to open incoming body stream - %+v", streamRes.Err())
-	}
+// subscription is returned by subscribing to a stream and can report readiness.
+type subscription interface {
+	Ready() bool
+	Drop()
+}
 
-	trailer := http.Header{}
-	return &incomingBody{
-		ctx:     ctx,
-		body:    body,
-		stream:  streamRes.Ok(),
-		trailer: trailer,
-	}, trailer, nil
+// inputStream abstracts *streams.InputStream for reading incoming body data.
+type inputStream interface {
+	Subscribe() subscription
+	Read(length uint64) witTypes.Result[[]uint8, streams.StreamError]
+	Drop()
+}
+
+// incomingBodyResource abstracts *types.IncomingBody for use by incomingBody.
+type incomingBodyResource interface {
+	// FinishAndGetTrailers consumes the body, populates trailer with any HTTP
+	// trailers, and releases all associated WASM resources.
+	FinishAndGetTrailers(trailer http.Header)
+	// Drop releases the body resource without consuming it.
+	Drop()
 }
 
 type incomingBody struct {
 	ctx    context.Context
-	body   *types.IncomingBody
-	stream *streams.InputStream
+	body   incomingBodyResource
+	stream inputStream
 
 	trailer     http.Header
 	trailerOnce sync.Once
@@ -77,33 +81,6 @@ func (r *incomingBody) Close() error {
 }
 
 func (r *incomingBody) parseTrailers() {
-	futureTrailers := types.IncomingBodyFinish(r.body)
-	defer futureTrailers.Drop()
+	r.body.FinishAndGetTrailers(r.trailer)
 	r.body = nil
-
-	trailerRes := futureTrailers.Get()
-	if trailerRes.IsNone() {
-		return
-	}
-
-	outerResult := trailerRes.Some()
-	if outerResult.IsErr() {
-		return
-	}
-
-	innerResult := outerResult.Ok()
-	if innerResult.IsErr() {
-		return
-	}
-
-	optTrailer := innerResult.Ok()
-	if optTrailer.IsNone() {
-		return
-	}
-
-	wasiTrailers := optTrailer.Some()
-	defer wasiTrailers.Drop()
-	for _, kv := range wasiTrailers.Entries() {
-		r.trailer.Add(kv.F0, string(kv.F1))
-	}
 }

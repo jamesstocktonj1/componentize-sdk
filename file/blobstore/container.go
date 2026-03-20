@@ -14,8 +14,5 @@ func (c *containerImpl) Close() error {
 }
 
 func (c *containerImpl) Open(name string) (Object, error) {
-	return &objectImpl{
-		name: name,
-		cont: c.cont,
-	}, nil
+	return newObject(name, c.cont)
 }

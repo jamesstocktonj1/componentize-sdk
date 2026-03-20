@@ -10,18 +10,40 @@ import (
 )
 
 type objectImpl struct {
-	name string
-	cont *container.Container
-
-	// read
-	cursor uint64
-
-	// write
+	name     string
+	cont     *container.Container
+	cursor   uint64
+	outgoing *types.OutgoingValue
+	stream   *types.OutputStream
 }
 
 var _ Object = (*objectImpl)(nil)
 
+func newObject(name string, cont *container.Container) (*objectImpl, error) {
+	outgoing := types.OutgoingValueNewOutgoingValue()
+	streamRes := outgoing.OutgoingValueWriteBody()
+	if streamRes.IsErr() {
+		outgoing.Drop()
+		return nil, errors.New("failed to open outgoing write body")
+	}
+	return &objectImpl{
+		name:     name,
+		cont:     cont,
+		outgoing: outgoing,
+		stream:   streamRes.Ok(),
+	}, nil
+}
+
 func (o *objectImpl) Close() error {
+	flushRes := o.stream.BlockingFlush()
+	o.stream.Drop()
+	if flushRes.IsErr() {
+		return fmt.Errorf("failed to flush outgoing stream: %v", flushRes.Err())
+	}
+	contWriteRes := o.cont.WriteData(o.name, o.outgoing)
+	if contWriteRes.IsErr() {
+		return errors.New(contWriteRes.Err())
+	}
 	return nil
 }
 
@@ -42,6 +64,7 @@ func (o *objectImpl) Read(p []byte) (int, error) {
 	copy(p, data)
 
 	dataLen := len(data)
+	o.cursor += uint64(dataLen)
 	if dataLen < len(p) {
 		return dataLen, io.EOF
 	}
@@ -49,28 +72,9 @@ func (o *objectImpl) Read(p []byte) (int, error) {
 }
 
 func (o *objectImpl) Write(p []byte) (int, error) {
-	// move to object open?
-	outgoing := types.OutgoingValueNewOutgoingValue()
-	defer outgoing.Drop()
-
-	// move to object open?
-	streamRes := outgoing.OutgoingValueWriteBody()
-	if streamRes.IsErr() {
-		return 0, errors.New("failed to open outgoing write body")
-	}
-	stream := streamRes.Ok()
-	defer stream.Drop()
-
-	// change to stream.Write
-	writeRes := stream.BlockingWriteAndFlush(p)
+	writeRes := o.stream.Write(p)
 	if writeRes.IsErr() {
-		return 0, fmt.Errorf("failed to write to outgoing stream - %+v", writeRes.Err())
-	}
-
-	// move this to Close()
-	contWriteRes := o.cont.WriteData(o.name, outgoing)
-	if contWriteRes.IsErr() {
-		return 0, errors.New(contWriteRes.Err())
+		return 0, fmt.Errorf("failed to write to outgoing stream: %v", writeRes.Err())
 	}
 	return len(p), nil
 }

@@ -52,7 +52,6 @@ func (r *incomingBody) Read(p []byte) (int, error) {
 	readRes := r.stream.Read(uint64(len(p)))
 	if readRes.IsErr() {
 		if readRes.Err().Tag() == streams.StreamErrorClosed {
-			r.trailerOnce.Do(r.parseTrailers)
 			return 0, io.EOF
 		}
 		return 0, fmt.Errorf("failed to read from input stream - %+v", readRes.Err())
@@ -64,11 +63,11 @@ func (r *incomingBody) Read(p []byte) (int, error) {
 }
 
 func (r *incomingBody) Close() error {
-	r.trailerOnce.Do(r.parseTrailers)
-
 	if r.stream != nil {
 		r.stream.Drop()
+		r.stream = nil
 	}
+	r.trailerOnce.Do(r.parseTrailers)
 
 	if r.body != nil {
 		r.body.Drop()

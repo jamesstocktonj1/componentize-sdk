@@ -3,6 +3,7 @@ package blobstore
 import (
 	"errors"
 	"io"
+	"os"
 
 	blobstore "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_blobstore_blobstore"
 )
@@ -25,9 +26,11 @@ func Create(name string) (Container, error) {
 
 type Container interface {
 	io.Closer
+	Name() (string, error)
 	Open(string) (Object, error)
 }
 
 type Object interface {
 	io.ReadWriteCloser
+	Stat() (os.FileInfo, error)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	container "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_blobstore_container"
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_blobstore_types"
@@ -77,4 +78,12 @@ func (o *objectImpl) Write(p []byte) (int, error) {
 		return 0, fmt.Errorf("failed to write to outgoing stream: %v", writeRes.Err())
 	}
 	return len(p), nil
+}
+
+func (o *objectImpl) Stat() (os.FileInfo, error) {
+	metaRes := o.cont.ObjectInfo(o.name)
+	if metaRes.IsErr() {
+		return nil, errors.New(metaRes.Err())
+	}
+	return &objectMeta{meta: metaRes.Ok()}, nil
 }

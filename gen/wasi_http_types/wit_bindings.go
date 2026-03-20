@@ -6,14 +6,16 @@
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0
+//     wasi:io@0.2.1
+//     wasi:blobstore@0.2.0-draft
 //     jamesstocktonj1:componentize-sdk
 
 package wasi_http_types
 
 import (
-	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_error"
-	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_poll"
-	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
+	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_error"
+	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_poll"
+	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 	witRuntime "go.bytecodealliance.org/pkg/wit/runtime"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 	"runtime"
@@ -21,10 +23,10 @@ import (
 )
 
 type Duration = uint64
-type InputStream = wasi_io_streams.InputStream
-type OutputStream = wasi_io_streams.OutputStream
-type IoError = wasi_io_error.Error
-type Pollable = wasi_io_poll.Pollable
+type InputStream = wasi_io_0_2_0_streams.InputStream
+type OutputStream = wasi_io_0_2_0_streams.OutputStream
+type IoError = wasi_io_0_2_0_error.Error
+type Pollable = wasi_io_0_2_0_poll.Pollable
 
 const (
 	MethodGet     uint8 = 0
@@ -3003,20 +3005,20 @@ func (self *IncomingResponse) Consume() witTypes.Result[*IncomingBody, witTypes.
 //go:wasmimport wasi:http/types@0.2.0 [method]incoming-body.stream
 func wasm_import_method_incoming_body_stream(arg0 int32, arg1 uintptr)
 
-func (self *IncomingBody) Stream() witTypes.Result[*wasi_io_streams.InputStream, witTypes.Unit] {
+func (self *IncomingBody) Stream() witTypes.Result[*wasi_io_0_2_0_streams.InputStream, witTypes.Unit] {
 	pinner := &runtime.Pinner{}
 	defer pinner.Unpin()
 
 	returnArea := uintptr(witRuntime.Allocate(pinner, 8, 4))
 	wasm_import_method_incoming_body_stream((self).Handle(), returnArea)
-	var result witTypes.Result[*wasi_io_streams.InputStream, witTypes.Unit]
+	var result witTypes.Result[*wasi_io_0_2_0_streams.InputStream, witTypes.Unit]
 	switch uint8(*(*uint32)(unsafe.Add(unsafe.Pointer(returnArea), 0))) {
 	case 0:
 
-		result = witTypes.Ok[*wasi_io_streams.InputStream, witTypes.Unit](wasi_io_streams.InputStreamFromOwnHandle(int32(uintptr(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4))))))
+		result = witTypes.Ok[*wasi_io_0_2_0_streams.InputStream, witTypes.Unit](wasi_io_0_2_0_streams.InputStreamFromOwnHandle(int32(uintptr(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4))))))
 	case 1:
 
-		result = witTypes.Err[*wasi_io_streams.InputStream, witTypes.Unit](witTypes.Unit{})
+		result = witTypes.Err[*wasi_io_0_2_0_streams.InputStream, witTypes.Unit](witTypes.Unit{})
 	default:
 		panic("unreachable")
 	}
@@ -3038,10 +3040,10 @@ func IncomingBodyFinish(this *IncomingBody) *FutureTrailers {
 //go:wasmimport wasi:http/types@0.2.0 [method]future-trailers.subscribe
 func wasm_import_method_future_trailers_subscribe(arg0 int32) int32
 
-func (self *FutureTrailers) Subscribe() *wasi_io_poll.Pollable {
+func (self *FutureTrailers) Subscribe() *wasi_io_0_2_0_poll.Pollable {
 
 	result := wasm_import_method_future_trailers_subscribe((self).Handle())
-	return wasi_io_poll.PollableFromOwnHandle(int32(uintptr(result)))
+	return wasi_io_0_2_0_poll.PollableFromOwnHandle(int32(uintptr(result)))
 
 }
 
@@ -3594,20 +3596,20 @@ func (self *OutgoingResponse) Body() witTypes.Result[*OutgoingBody, witTypes.Uni
 //go:wasmimport wasi:http/types@0.2.0 [method]outgoing-body.write
 func wasm_import_method_outgoing_body_write(arg0 int32, arg1 uintptr)
 
-func (self *OutgoingBody) Write() witTypes.Result[*wasi_io_streams.OutputStream, witTypes.Unit] {
+func (self *OutgoingBody) Write() witTypes.Result[*wasi_io_0_2_0_streams.OutputStream, witTypes.Unit] {
 	pinner := &runtime.Pinner{}
 	defer pinner.Unpin()
 
 	returnArea := uintptr(witRuntime.Allocate(pinner, 8, 4))
 	wasm_import_method_outgoing_body_write((self).Handle(), returnArea)
-	var result witTypes.Result[*wasi_io_streams.OutputStream, witTypes.Unit]
+	var result witTypes.Result[*wasi_io_0_2_0_streams.OutputStream, witTypes.Unit]
 	switch uint8(*(*uint32)(unsafe.Add(unsafe.Pointer(returnArea), 0))) {
 	case 0:
 
-		result = witTypes.Ok[*wasi_io_streams.OutputStream, witTypes.Unit](wasi_io_streams.OutputStreamFromOwnHandle(int32(uintptr(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4))))))
+		result = witTypes.Ok[*wasi_io_0_2_0_streams.OutputStream, witTypes.Unit](wasi_io_0_2_0_streams.OutputStreamFromOwnHandle(int32(uintptr(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4))))))
 	case 1:
 
-		result = witTypes.Err[*wasi_io_streams.OutputStream, witTypes.Unit](witTypes.Unit{})
+		result = witTypes.Err[*wasi_io_0_2_0_streams.OutputStream, witTypes.Unit](witTypes.Unit{})
 	default:
 		panic("unreachable")
 	}
@@ -4071,10 +4073,10 @@ func OutgoingBodyFinish(this *OutgoingBody, trailers witTypes.Option[*Fields]) w
 //go:wasmimport wasi:http/types@0.2.0 [method]future-incoming-response.subscribe
 func wasm_import_method_future_incoming_response_subscribe(arg0 int32) int32
 
-func (self *FutureIncomingResponse) Subscribe() *wasi_io_poll.Pollable {
+func (self *FutureIncomingResponse) Subscribe() *wasi_io_0_2_0_poll.Pollable {
 
 	result := wasm_import_method_future_incoming_response_subscribe((self).Handle())
-	return wasi_io_poll.PollableFromOwnHandle(int32(uintptr(result)))
+	return wasi_io_0_2_0_poll.PollableFromOwnHandle(int32(uintptr(result)))
 
 }
 
@@ -4540,7 +4542,7 @@ func (self *FutureIncomingResponse) Get() witTypes.Option[witTypes.Result[witTyp
 //go:wasmimport wasi:http/types@0.2.0 http-error-code
 func wasm_import_http_error_code(arg0 int32, arg1 uintptr)
 
-func HttpErrorCode(err *wasi_io_error.Error) witTypes.Option[ErrorCode] {
+func HttpErrorCode(err *wasi_io_0_2_0_error.Error) witTypes.Option[ErrorCode] {
 	pinner := &runtime.Pinner{}
 	defer pinner.Unpin()
 

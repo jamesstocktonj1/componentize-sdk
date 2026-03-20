@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
-	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_streams"
+	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 

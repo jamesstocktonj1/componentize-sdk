@@ -33,6 +33,7 @@ jobs:
         function:
           - examples/hello
           - examples/client
+          - examples/blobby
     steps:
       - name: Checkout
         uses: actions/checkout@v4

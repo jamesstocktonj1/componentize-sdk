@@ -6,7 +6,7 @@ import (
 	"time"
 
 	monotonicclock "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_clocks_monotonic_clock"
-	poll "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_poll"
+	poll "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 )
 
 const pollInterval = 10 * time.Microsecond

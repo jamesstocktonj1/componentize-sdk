@@ -28,3 +28,9 @@ func Await(ctx context.Context, p *poll.Pollable) error {
 	}
 	return nil
 }
+
+// BlockAndDrop blocks until the pollable is ready, then drops it.
+func BlockAndDrop(p *poll.Pollable) {
+	p.Block()
+	defer p.Drop()
+}

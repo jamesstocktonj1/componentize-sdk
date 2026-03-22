@@ -7,7 +7,7 @@ import (
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
 )
 
-func addressFamily(addr wasiNetwork.IpSocketAddress) wasiNetwork.IpAddressFamily {
+func mapAddressFamily(addr wasiNetwork.IpSocketAddress) wasiNetwork.IpAddressFamily {
 	if addr.Tag() == wasiNetwork.IpSocketAddressIpv4 {
 		return wasiNetwork.IpAddressFamilyIpv4
 	}
@@ -63,7 +63,7 @@ func mapErrorCode(code wasiNetwork.ErrorCode) error {
 	}
 }
 
-func ipSocketAddressToNetAddr(addr wasiNetwork.IpSocketAddress) net.Addr {
+func mapIpAddress(addr wasiNetwork.IpSocketAddress) net.Addr {
 	if addr.Tag() == wasiNetwork.IpSocketAddressIpv4 {
 		v4 := addr.Ipv4()
 		return &net.TCPAddr{

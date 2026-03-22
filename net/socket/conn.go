@@ -59,7 +59,7 @@ func (c *wasiConn) LocalAddr() net.Addr {
 	if res.IsErr() {
 		return &net.TCPAddr{}
 	}
-	return ipSocketAddressToNetAddr(res.Ok())
+	return mapIpAddress(res.Ok())
 }
 
 func (c *wasiConn) RemoteAddr() net.Addr {
@@ -67,7 +67,7 @@ func (c *wasiConn) RemoteAddr() net.Addr {
 	if res.IsErr() {
 		return &net.TCPAddr{}
 	}
-	return ipSocketAddressToNetAddr(res.Ok())
+	return mapIpAddress(res.Ok())
 }
 
 func (c *wasiConn) SetDeadline(_ time.Time) error      { return nil }

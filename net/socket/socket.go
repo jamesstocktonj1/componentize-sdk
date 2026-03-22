@@ -7,40 +7,24 @@ import (
 
 	instanceNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_instance_network"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
+	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
 	wasiTcpCreate "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp_create_socket"
 )
 
 func Dial(network string, address string) (net.Conn, error) {
-	if network != "tcp" && network != "tcp4" && network != "tcp6" {
-		return nil, fmt.Errorf("unsupported network %q: only tcp is supported", network)
-	}
-	host, portStr, err := net.SplitHostPort(address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid address %q: %w", address, err)
-	}
-	port, err := strconv.ParseUint(portStr, 10, 16)
-	if err != nil {
-		return nil, fmt.Errorf("invalid port %q: %w", portStr, err)
-	}
-
-	n := instanceNetwork.InstanceNetwork()
-
-	remoteAddr, err := resolveAddress(n, host, uint16(port))
+	n, remoteAddr, err := resolveNetworkAddress(network, address, "")
 	if err != nil {
 		return nil, err
 	}
 
-	family := addressFamily(remoteAddr)
-	socketRes := wasiTcpCreate.CreateTcpSocket(family)
-	if socketRes.IsErr() {
-		return nil, mapErrorCode(socketRes.Err())
+	sock, err := createTcpSocket(remoteAddr)
+	if err != nil {
+		return nil, err
 	}
-	sock := socketRes.Ok()
 
-	connectRes := sock.StartConnect(n, remoteAddr)
-	if connectRes.IsErr() {
+	if res := sock.StartConnect(n, remoteAddr); res.IsErr() {
 		sock.Drop()
-		return nil, mapErrorCode(connectRes.Err())
+		return nil, mapErrorCode(res.Err())
 	}
 
 	for {
@@ -48,60 +32,35 @@ func Dial(network string, address string) (net.Conn, error) {
 		pollable.Block()
 		pollable.Drop()
 
-		finishRes := sock.FinishConnect()
-		if finishRes.IsErr() {
-			code := finishRes.Err()
+		res := sock.FinishConnect()
+		if res.IsErr() {
+			code := res.Err()
 			if code == wasiNetwork.ErrorCodeWouldBlock {
 				continue
 			}
 			sock.Drop()
 			return nil, mapErrorCode(code)
 		}
-		streams := finishRes.Ok()
-		return &wasiConn{
-			socket: sock,
-			reader: streams.F0,
-			writer: streams.F1,
-		}, nil
+		streams := res.Ok()
+		return &wasiConn{socket: sock, reader: streams.F0, writer: streams.F1}, nil
 	}
 }
 
 func Listen(network string, address string) (net.Listener, error) {
-	if network != "tcp" && network != "tcp4" && network != "tcp6" {
-		return nil, fmt.Errorf("unsupported network %q: only tcp is supported", network)
-	}
-	host, portStr, err := net.SplitHostPort(address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid address %q: %w", address, err)
-	}
-	port, err := strconv.ParseUint(portStr, 10, 16)
-	if err != nil {
-		return nil, fmt.Errorf("invalid port %q: %w", portStr, err)
-	}
-
-	if host == "" {
-		// Default to IPv4 wildcard; WASI does not support dual-stack sockets.
-		host = "0.0.0.0"
-	}
-
-	n := instanceNetwork.InstanceNetwork()
-
-	localAddr, err := resolveAddress(n, host, uint16(port))
+	// Default to IPv4 wildcard; WASI does not support dual-stack sockets.
+	n, localAddr, err := resolveNetworkAddress(network, address, "0.0.0.0")
 	if err != nil {
 		return nil, err
 	}
 
-	family := addressFamily(localAddr)
-	socketRes := wasiTcpCreate.CreateTcpSocket(family)
-	if socketRes.IsErr() {
-		return nil, mapErrorCode(socketRes.Err())
+	sock, err := createTcpSocket(localAddr)
+	if err != nil {
+		return nil, err
 	}
-	sock := socketRes.Ok()
 
-	bindRes := sock.StartBind(n, localAddr)
-	if bindRes.IsErr() {
+	if res := sock.StartBind(n, localAddr); res.IsErr() {
 		sock.Drop()
-		return nil, mapErrorCode(bindRes.Err())
+		return nil, mapErrorCode(res.Err())
 	}
 
 	for {
@@ -109,9 +68,9 @@ func Listen(network string, address string) (net.Listener, error) {
 		pollable.Block()
 		pollable.Drop()
 
-		finishRes := sock.FinishBind()
-		if finishRes.IsErr() {
-			code := finishRes.Err()
+		res := sock.FinishBind()
+		if res.IsErr() {
+			code := res.Err()
 			if code == wasiNetwork.ErrorCodeWouldBlock {
 				continue
 			}
@@ -121,10 +80,9 @@ func Listen(network string, address string) (net.Listener, error) {
 		break
 	}
 
-	listenRes := sock.StartListen()
-	if listenRes.IsErr() {
+	if res := sock.StartListen(); res.IsErr() {
 		sock.Drop()
-		return nil, mapErrorCode(listenRes.Err())
+		return nil, mapErrorCode(res.Err())
 	}
 
 	for {
@@ -132,9 +90,9 @@ func Listen(network string, address string) (net.Listener, error) {
 		pollable.Block()
 		pollable.Drop()
 
-		finishRes := sock.FinishListen()
-		if finishRes.IsErr() {
-			code := finishRes.Err()
+		res := sock.FinishListen()
+		if res.IsErr() {
+			code := res.Err()
 			if code == wasiNetwork.ErrorCodeWouldBlock {
 				continue
 			}
@@ -152,6 +110,37 @@ func Listen(network string, address string) (net.Listener, error) {
 
 	return &wasiListener{
 		socket: sock,
-		addr:   ipSocketAddressToNetAddr(addrRes.Ok()),
+		addr:   mapIpAddress(addrRes.Ok()),
 	}, nil
+}
+
+func resolveNetworkAddress(network, address string, defaultHost string) (*wasiNetwork.Network, wasiNetwork.IpSocketAddress, error) {
+	if network != "tcp" && network != "tcp4" && network != "tcp6" {
+		return nil, wasiNetwork.IpSocketAddress{}, fmt.Errorf("unsupported network %q: only tcp is supported", network)
+	}
+	host, portStr, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, wasiNetwork.IpSocketAddress{}, fmt.Errorf("invalid address %q: %w", address, err)
+	}
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return nil, wasiNetwork.IpSocketAddress{}, fmt.Errorf("invalid port %q: %w", portStr, err)
+	}
+	if host == "" {
+		host = defaultHost
+	}
+	n := instanceNetwork.InstanceNetwork()
+	addr, err := resolveAddress(n, host, uint16(port))
+	if err != nil {
+		return nil, wasiNetwork.IpSocketAddress{}, err
+	}
+	return n, addr, nil
+}
+
+func createTcpSocket(addr wasiNetwork.IpSocketAddress) (*wasiTcp.TcpSocket, error) {
+	res := wasiTcpCreate.CreateTcpSocket(mapAddressFamily(addr))
+	if res.IsErr() {
+		return nil, mapErrorCode(res.Err())
+	}
+	return res.Ok(), nil
 }

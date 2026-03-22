@@ -11,11 +11,11 @@
 //     wasi:http@0.2.0
 //     jamesstocktonj1:componentize-sdk
 
-package wasi_sockets_tcp_create_socket
+package wasi_sockets_udp_create_socket
 
 import (
 	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
-	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
+	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_udp"
 	witRuntime "go.bytecodealliance.org/pkg/wit/runtime"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 	"runtime"
@@ -25,25 +25,25 @@ import (
 type Network = wasi_sockets_network.Network
 type ErrorCode = wasi_sockets_network.ErrorCode
 type IpAddressFamily = wasi_sockets_network.IpAddressFamily
-type TcpSocket = wasi_sockets_tcp.TcpSocket
+type UdpSocket = wasi_sockets_udp.UdpSocket
 
-//go:wasmimport wasi:sockets/tcp-create-socket@0.2.0 create-tcp-socket
-func wasm_import_create_tcp_socket(arg0 int32, arg1 uintptr)
+//go:wasmimport wasi:sockets/udp-create-socket@0.2.0 create-udp-socket
+func wasm_import_create_udp_socket(arg0 int32, arg1 uintptr)
 
-func CreateTcpSocket(addressFamily wasi_sockets_network.IpAddressFamily) witTypes.Result[*wasi_sockets_tcp.TcpSocket, wasi_sockets_network.ErrorCode] {
+func CreateUdpSocket(addressFamily wasi_sockets_network.IpAddressFamily) witTypes.Result[*wasi_sockets_udp.UdpSocket, wasi_sockets_network.ErrorCode] {
 	pinner := &runtime.Pinner{}
 	defer pinner.Unpin()
 
 	returnArea := uintptr(witRuntime.Allocate(pinner, 8, 4))
-	wasm_import_create_tcp_socket(int32(addressFamily), returnArea)
-	var result witTypes.Result[*wasi_sockets_tcp.TcpSocket, wasi_sockets_network.ErrorCode]
+	wasm_import_create_udp_socket(int32(addressFamily), returnArea)
+	var result witTypes.Result[*wasi_sockets_udp.UdpSocket, wasi_sockets_network.ErrorCode]
 	switch uint8(*(*uint32)(unsafe.Add(unsafe.Pointer(returnArea), 0))) {
 	case 0:
 
-		result = witTypes.Ok[*wasi_sockets_tcp.TcpSocket, wasi_sockets_network.ErrorCode](wasi_sockets_tcp.TcpSocketFromOwnHandle(int32(uintptr(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4))))))
+		result = witTypes.Ok[*wasi_sockets_udp.UdpSocket, wasi_sockets_network.ErrorCode](wasi_sockets_udp.UdpSocketFromOwnHandle(int32(uintptr(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4))))))
 	case 1:
 
-		result = witTypes.Err[*wasi_sockets_tcp.TcpSocket, wasi_sockets_network.ErrorCode](uint8(uint8(*(*uint32)(unsafe.Add(unsafe.Pointer(returnArea), 4)))))
+		result = witTypes.Err[*wasi_sockets_udp.UdpSocket, wasi_sockets_network.ErrorCode](uint8(uint8(*(*uint32)(unsafe.Add(unsafe.Pointer(returnArea), 4)))))
 	default:
 		panic("unreachable")
 	}

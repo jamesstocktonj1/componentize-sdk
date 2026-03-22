@@ -9,6 +9,5 @@ world sdk {
   export wasi:http/incoming-handler@0.2.0;
 
   /// net/sockets
-  import wasi:sockets/tcp@0.2.0;
-  import wasi:sockets/tcp-create-socket@0.2.0;
+  include wasi:sockets/imports@0.2.0;
 }

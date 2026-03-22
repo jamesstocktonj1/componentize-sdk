@@ -39,7 +39,7 @@ func resolveAddress(n *wasiNetwork.Network, host string, port uint16) (wasiNetwo
 
 	streamRes := ipNameLookup.ResolveAddresses(n, host)
 	if streamRes.IsErr() {
-		return wasiNetwork.IpSocketAddress{}, wasiErrorToGoError(streamRes.Err())
+		return wasiNetwork.IpSocketAddress{}, mapErrorCode(streamRes.Err())
 	}
 	stream := streamRes.Ok()
 	defer stream.Drop()
@@ -51,7 +51,7 @@ func resolveAddress(n *wasiNetwork.Network, host string, port uint16) (wasiNetwo
 
 		addrRes := stream.ResolveNextAddress()
 		if addrRes.IsErr() {
-			return wasiNetwork.IpSocketAddress{}, wasiErrorToGoError(addrRes.Err())
+			return wasiNetwork.IpSocketAddress{}, mapErrorCode(addrRes.Err())
 		}
 
 		opt := addrRes.Ok()

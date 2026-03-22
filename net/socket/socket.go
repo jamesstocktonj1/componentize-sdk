@@ -33,14 +33,14 @@ func Dial(network string, address string) (net.Conn, error) {
 	family := addressFamily(remoteAddr)
 	socketRes := wasiTcpCreate.CreateTcpSocket(family)
 	if socketRes.IsErr() {
-		return nil, wasiErrorToGoError(socketRes.Err())
+		return nil, mapErrorCode(socketRes.Err())
 	}
 	sock := socketRes.Ok()
 
 	connectRes := sock.StartConnect(n, remoteAddr)
 	if connectRes.IsErr() {
 		sock.Drop()
-		return nil, wasiErrorToGoError(connectRes.Err())
+		return nil, mapErrorCode(connectRes.Err())
 	}
 
 	for {
@@ -55,7 +55,7 @@ func Dial(network string, address string) (net.Conn, error) {
 				continue
 			}
 			sock.Drop()
-			return nil, wasiErrorToGoError(code)
+			return nil, mapErrorCode(code)
 		}
 		streams := finishRes.Ok()
 		return &wasiConn{
@@ -94,14 +94,14 @@ func Listen(network string, address string) (net.Listener, error) {
 	family := addressFamily(localAddr)
 	socketRes := wasiTcpCreate.CreateTcpSocket(family)
 	if socketRes.IsErr() {
-		return nil, wasiErrorToGoError(socketRes.Err())
+		return nil, mapErrorCode(socketRes.Err())
 	}
 	sock := socketRes.Ok()
 
 	bindRes := sock.StartBind(n, localAddr)
 	if bindRes.IsErr() {
 		sock.Drop()
-		return nil, wasiErrorToGoError(bindRes.Err())
+		return nil, mapErrorCode(bindRes.Err())
 	}
 
 	for {
@@ -116,7 +116,7 @@ func Listen(network string, address string) (net.Listener, error) {
 				continue
 			}
 			sock.Drop()
-			return nil, wasiErrorToGoError(code)
+			return nil, mapErrorCode(code)
 		}
 		break
 	}
@@ -124,7 +124,7 @@ func Listen(network string, address string) (net.Listener, error) {
 	listenRes := sock.StartListen()
 	if listenRes.IsErr() {
 		sock.Drop()
-		return nil, wasiErrorToGoError(listenRes.Err())
+		return nil, mapErrorCode(listenRes.Err())
 	}
 
 	for {
@@ -139,7 +139,7 @@ func Listen(network string, address string) (net.Listener, error) {
 				continue
 			}
 			sock.Drop()
-			return nil, wasiErrorToGoError(code)
+			return nil, mapErrorCode(code)
 		}
 		break
 	}
@@ -147,7 +147,7 @@ func Listen(network string, address string) (net.Listener, error) {
 	addrRes := sock.LocalAddress()
 	if addrRes.IsErr() {
 		sock.Drop()
-		return nil, wasiErrorToGoError(addrRes.Err())
+		return nil, mapErrorCode(addrRes.Err())
 	}
 
 	return &wasiListener{

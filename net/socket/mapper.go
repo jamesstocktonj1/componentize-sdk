@@ -14,7 +14,7 @@ func addressFamily(addr wasiNetwork.IpSocketAddress) wasiNetwork.IpAddressFamily
 	return wasiNetwork.IpAddressFamilyIpv6
 }
 
-func wasiErrorToGoError(code wasiNetwork.ErrorCode) error {
+func mapErrorCode(code wasiNetwork.ErrorCode) error {
 	switch code {
 	case wasiNetwork.ErrorCodeUnknown:
 		return ErrUnknown

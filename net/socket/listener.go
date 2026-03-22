@@ -26,7 +26,7 @@ func (l *wasiListener) Accept() (net.Conn, error) {
 				pollable.Drop()
 				continue
 			}
-			return nil, wasiErrorToGoError(code)
+			return nil, mapErrorCode(code)
 		}
 		tuple := res.Ok()
 		return &wasiConn{

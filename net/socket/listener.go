@@ -9,9 +9,8 @@ import (
 
 // wasiListener implements net.Listener over a WASI TCP socket.
 type wasiListener struct {
-	socket  *wasiTcp.TcpSocket
-	network *wasiNetwork.Network
-	addr    net.Addr
+	socket *wasiTcp.TcpSocket
+	addr   net.Addr
 }
 
 var _ net.Listener = (*wasiListener)(nil)

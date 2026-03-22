@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	wasiStreams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
@@ -12,14 +13,18 @@ import (
 
 // wasiConn implements net.Conn over WASI TCP streams.
 type wasiConn struct {
-	socket *wasiTcp.TcpSocket
-	reader *wasiTcp.InputStream
-	writer *wasiTcp.OutputStream
+	socket    *wasiTcp.TcpSocket
+	reader    *wasiTcp.InputStream
+	writer    *wasiTcp.OutputStream
+	closeOnce sync.Once
 }
 
 var _ net.Conn = (*wasiConn)(nil)
 
 func (c *wasiConn) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
 	res := c.reader.BlockingRead(uint64(len(b)))
 	if res.IsErr() {
 		streamErr := res.Err()
@@ -41,9 +46,11 @@ func (c *wasiConn) Write(b []byte) (int, error) {
 }
 
 func (c *wasiConn) Close() error {
-	c.reader.Drop()
-	c.writer.Drop()
-	c.socket.Drop()
+	c.closeOnce.Do(func() {
+		c.reader.Drop()
+		c.writer.Drop()
+		c.socket.Drop()
+	})
 	return nil
 }
 

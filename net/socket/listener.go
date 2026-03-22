@@ -3,6 +3,7 @@ package socket
 import (
 	"net"
 
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
 )
@@ -21,7 +22,7 @@ func (l *wasiListener) Accept() (net.Conn, error) {
 		if res.IsErr() {
 			code := res.Err()
 			if code == wasiNetwork.ErrorCodeWouldBlock {
-				blockAndDrop(l.socket.Subscribe())
+				pollable.BlockAndDrop(l.socket.Subscribe())
 				continue
 			}
 			return nil, mapErrorCode(code)

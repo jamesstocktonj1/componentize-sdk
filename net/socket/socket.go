@@ -28,9 +28,7 @@ func Dial(network string, address string) (net.Conn, error) {
 	}
 
 	for {
-		pollable := sock.Subscribe()
-		pollable.Block()
-		pollable.Drop()
+		blockAndDrop(sock.Subscribe())
 
 		res := sock.FinishConnect()
 		if res.IsErr() {
@@ -64,9 +62,7 @@ func Listen(network string, address string) (net.Listener, error) {
 	}
 
 	for {
-		pollable := sock.Subscribe()
-		pollable.Block()
-		pollable.Drop()
+		blockAndDrop(sock.Subscribe())
 
 		res := sock.FinishBind()
 		if res.IsErr() {
@@ -86,9 +82,7 @@ func Listen(network string, address string) (net.Listener, error) {
 	}
 
 	for {
-		pollable := sock.Subscribe()
-		pollable.Block()
-		pollable.Drop()
+		blockAndDrop(sock.Subscribe())
 
 		res := sock.FinishListen()
 		if res.IsErr() {
@@ -135,6 +129,11 @@ func resolveNetworkAddress(network, address string, defaultHost string) (*wasiNe
 		return nil, wasiNetwork.IpSocketAddress{}, err
 	}
 	return n, addr, nil
+}
+
+func blockAndDrop(p *wasiTcp.Pollable) {
+	p.Block()
+	p.Drop()
 }
 
 func createTcpSocket(addr wasiNetwork.IpSocketAddress) (*wasiTcp.TcpSocket, error) {

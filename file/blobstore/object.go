@@ -8,6 +8,7 @@ import (
 
 	container "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_blobstore_container"
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_blobstore_types"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
 type objectImpl struct {
@@ -36,11 +37,13 @@ func newObject(name string, cont *container.Container) (*objectImpl, error) {
 }
 
 func (o *objectImpl) Close() error {
-	flushRes := o.stream.BlockingFlush()
-	o.stream.Drop()
+	flushRes := o.stream.Flush()
 	if flushRes.IsErr() {
+		o.stream.Drop()
 		return fmt.Errorf("failed to flush outgoing stream: %v", flushRes.Err())
 	}
+	pollable.AwaitAndDrop(o.stream.Subscribe())
+	o.stream.Drop()
 	contWriteRes := o.cont.WriteData(o.name, o.outgoing)
 	if contWriteRes.IsErr() {
 		return errors.New(contWriteRes.Err())

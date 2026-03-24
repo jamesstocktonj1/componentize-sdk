@@ -9,6 +9,8 @@ import (
 
 	wasiStreams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/stream"
 )
 
 // wasiConn implements net.Conn over WASI TCP streams.
@@ -25,7 +27,8 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	res := c.reader.BlockingRead(uint64(len(b)))
+	pollable.AwaitAndDrop(c.reader.Subscribe())
+	res := c.reader.Read(uint64(len(b)))
 	if res.IsErr() {
 		streamErr := res.Err()
 		if streamErr.Tag() == wasiStreams.StreamErrorClosed {
@@ -38,11 +41,7 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 }
 
 func (c *wasiConn) Write(b []byte) (int, error) {
-	res := c.writer.BlockingWriteAndFlush(b)
-	if res.IsErr() {
-		return 0, fmt.Errorf("write error: %v", res.Err().Tag())
-	}
-	return len(b), nil
+	return stream.WriteStream(c.writer, b)
 }
 
 func (c *wasiConn) Close() error {

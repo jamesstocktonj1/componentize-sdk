@@ -22,7 +22,7 @@ func (l *wasiListener) Accept() (net.Conn, error) {
 		if res.IsErr() {
 			code := res.Err()
 			if code == wasiNetwork.ErrorCodeWouldBlock {
-				pollable.BlockAndDrop(l.socket.Subscribe())
+				pollable.AwaitAndDrop(l.socket.Subscribe())
 				continue
 			}
 			return nil, mapErrorCode(code)

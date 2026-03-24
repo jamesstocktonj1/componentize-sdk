@@ -45,7 +45,7 @@ func (r *incomingBody) Read(p []byte) (int, error) {
 	waitable := r.stream.Subscribe()
 	defer waitable.Drop()
 
-	if err := pollable.Await(r.ctx, waitable); err != nil {
+	if err := pollable.AwaitContext(r.ctx, waitable); err != nil {
 		return 0, err
 	}
 

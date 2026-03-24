@@ -39,7 +39,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// wait for response
 	waitable := futureResp.Subscribe()
 	defer waitable.Drop()
-	if err := pollable.Await(req.Context(), waitable); err != nil {
+	if err := pollable.AwaitContext(req.Context(), waitable); err != nil {
 		return nil, err
 	}
 

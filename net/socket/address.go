@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	ipNameLookup "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_ip_name_lookup"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
 )
@@ -45,9 +46,7 @@ func resolveAddress(n *wasiNetwork.Network, host string, port uint16) (wasiNetwo
 	defer stream.Drop()
 
 	for {
-		pollable := stream.Subscribe()
-		pollable.Block()
-		pollable.Drop()
+		pollable.AwaitAndDrop(stream.Subscribe())
 
 		addrRes := stream.ResolveNextAddress()
 		if addrRes.IsErr() {

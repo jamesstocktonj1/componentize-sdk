@@ -1,6 +1,7 @@
 package httptypes
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
@@ -39,14 +41,52 @@ type outgoingBody struct {
 var _ io.WriteCloser = (*outgoingBody)(nil)
 
 func (w *outgoingBody) Write(p []byte) (int, error) {
-	writeRes := w.stream.BlockingWriteAndFlush(p)
-	if writeRes.IsErr() {
-		if writeRes.Err().Tag() == streams.StreamErrorClosed {
-			return 0, io.EOF
+	written := 0
+	for written < len(p) {
+		checkRes := w.stream.CheckWrite()
+		if checkRes.IsErr() {
+			if checkRes.Err().Tag() == streams.StreamErrorClosed {
+				return written, io.EOF
+			}
+			return written, fmt.Errorf("failed to check write capacity - %+v", checkRes.Err())
 		}
-		return 0, fmt.Errorf("failed to write to outgoing body stream - %+v", writeRes.Err())
+		capacity := checkRes.Ok()
+		if capacity == 0 {
+			waitable := w.stream.Subscribe()
+			if err := pollable.Await(context.Background(), waitable); err != nil {
+				waitable.Drop()
+				return written, err
+			}
+			waitable.Drop()
+			continue
+		}
+		chunk := p[written:]
+		if uint64(len(chunk)) > capacity {
+			chunk = chunk[:capacity]
+		}
+		writeRes := w.stream.Write(chunk)
+		if writeRes.IsErr() {
+			if writeRes.Err().Tag() == streams.StreamErrorClosed {
+				return written, io.EOF
+			}
+			return written, fmt.Errorf("failed to write to outgoing body stream - %+v", writeRes.Err())
+		}
+		written += len(chunk)
 	}
-	return len(p), nil
+
+	// Flush and wait for the flush to complete.
+	if flushRes := w.stream.Flush(); flushRes.IsErr() {
+		if flushRes.Err().Tag() == streams.StreamErrorClosed {
+			return written, io.EOF
+		}
+		return written, fmt.Errorf("failed to flush outgoing body stream - %+v", flushRes.Err())
+	}
+	waitable := w.stream.Subscribe()
+	defer waitable.Drop()
+	if err := pollable.Await(context.Background(), waitable); err != nil {
+		return written, err
+	}
+	return written, nil
 }
 
 // Close flushes, drops the stream, and finishes the body with any trailers
@@ -59,7 +99,10 @@ func (w *outgoingBody) Close() error {
 }
 
 func (w *outgoingBody) close() error {
-	w.stream.BlockingFlush()
+	w.stream.Flush()
+	waitable := w.stream.Subscribe()
+	pollable.Await(context.Background(), waitable) //nolint:errcheck
+	waitable.Drop()
 	w.stream.Drop()
 	w.stream = nil
 

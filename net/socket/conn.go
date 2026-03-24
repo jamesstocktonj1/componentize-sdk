@@ -1,12 +1,14 @@
 package socket
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	wasiStreams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
 )
@@ -25,7 +27,12 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	res := c.reader.BlockingRead(uint64(len(b)))
+	waitable := c.reader.Subscribe()
+	defer waitable.Drop()
+	if err := pollable.Await(context.Background(), waitable); err != nil {
+		return 0, err
+	}
+	res := c.reader.Read(uint64(len(b)))
 	if res.IsErr() {
 		streamErr := res.Err()
 		if streamErr.Tag() == wasiStreams.StreamErrorClosed {
@@ -38,11 +45,43 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 }
 
 func (c *wasiConn) Write(b []byte) (int, error) {
-	res := c.writer.BlockingWriteAndFlush(b)
-	if res.IsErr() {
-		return 0, fmt.Errorf("write error: %v", res.Err().Tag())
+	written := 0
+	for written < len(b) {
+		checkRes := c.writer.CheckWrite()
+		if checkRes.IsErr() {
+			return written, fmt.Errorf("write check error: %v", checkRes.Err().Tag())
+		}
+		capacity := checkRes.Ok()
+		if capacity == 0 {
+			waitable := c.writer.Subscribe()
+			if err := pollable.Await(context.Background(), waitable); err != nil {
+				waitable.Drop()
+				return written, err
+			}
+			waitable.Drop()
+			continue
+		}
+		chunk := b[written:]
+		if uint64(len(chunk)) > capacity {
+			chunk = chunk[:capacity]
+		}
+		res := c.writer.Write(chunk)
+		if res.IsErr() {
+			return written, fmt.Errorf("write error: %v", res.Err().Tag())
+		}
+		written += len(chunk)
 	}
-	return len(b), nil
+
+	// Flush and wait for completion.
+	if flushRes := c.writer.Flush(); flushRes.IsErr() {
+		return written, fmt.Errorf("flush error: %v", flushRes.Err().Tag())
+	}
+	waitable := c.writer.Subscribe()
+	defer waitable.Drop()
+	if err := pollable.Await(context.Background(), waitable); err != nil {
+		return written, err
+	}
+	return written, nil
 }
 
 func (c *wasiConn) Close() error {

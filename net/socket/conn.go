@@ -26,11 +26,7 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	waitable := c.reader.Subscribe()
-	defer waitable.Drop()
-	if err := pollable.Await(waitable); err != nil {
-		return 0, err
-	}
+	pollable.AwaitAndDrop(c.reader.Subscribe())
 	res := c.reader.Read(uint64(len(b)))
 	if res.IsErr() {
 		streamErr := res.Err()
@@ -52,12 +48,7 @@ func (c *wasiConn) Write(b []byte) (int, error) {
 		}
 		capacity := checkRes.Ok()
 		if capacity == 0 {
-			waitable := c.writer.Subscribe()
-			if err := pollable.Await(waitable); err != nil {
-				waitable.Drop()
-				return written, err
-			}
-			waitable.Drop()
+			pollable.AwaitAndDrop(c.writer.Subscribe())
 			continue
 		}
 		chunk := b[written:]
@@ -75,11 +66,7 @@ func (c *wasiConn) Write(b []byte) (int, error) {
 	if flushRes := c.writer.Flush(); flushRes.IsErr() {
 		return written, fmt.Errorf("flush error: %v", flushRes.Err().Tag())
 	}
-	waitable := c.writer.Subscribe()
-	defer waitable.Drop()
-	if err := pollable.Await(waitable); err != nil {
-		return written, err
-	}
+	pollable.AwaitAndDrop(c.writer.Subscribe())
 	return written, nil
 }
 

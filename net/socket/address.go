@@ -46,9 +46,7 @@ func resolveAddress(n *wasiNetwork.Network, host string, port uint16) (wasiNetwo
 	defer stream.Drop()
 
 	for {
-		p := stream.Subscribe()
-		pollable.Await(p) //nolint:errcheck
-		p.Drop()
+		pollable.AwaitAndDrop(stream.Subscribe())
 
 		addrRes := stream.ResolveNextAddress()
 		if addrRes.IsErr() {

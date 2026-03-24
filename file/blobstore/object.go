@@ -42,9 +42,7 @@ func (o *objectImpl) Close() error {
 		o.stream.Drop()
 		return fmt.Errorf("failed to flush outgoing stream: %v", flushRes.Err())
 	}
-	waitable := o.stream.Subscribe()
-	pollable.Await(waitable) //nolint:errcheck
-	waitable.Drop()
+	pollable.AwaitAndDrop(o.stream.Subscribe())
 	o.stream.Drop()
 	contWriteRes := o.cont.WriteData(o.name, o.outgoing)
 	if contWriteRes.IsErr() {

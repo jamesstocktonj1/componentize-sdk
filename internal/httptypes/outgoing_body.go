@@ -51,12 +51,7 @@ func (w *outgoingBody) Write(p []byte) (int, error) {
 		}
 		capacity := checkRes.Ok()
 		if capacity == 0 {
-			waitable := w.stream.Subscribe()
-			if err := pollable.Await(waitable); err != nil {
-				waitable.Drop()
-				return written, err
-			}
-			waitable.Drop()
+			pollable.AwaitAndDrop(w.stream.Subscribe())
 			continue
 		}
 		chunk := p[written:]
@@ -80,11 +75,7 @@ func (w *outgoingBody) Write(p []byte) (int, error) {
 		}
 		return written, fmt.Errorf("failed to flush outgoing body stream - %+v", flushRes.Err())
 	}
-	waitable := w.stream.Subscribe()
-	defer waitable.Drop()
-	if err := pollable.Await(waitable); err != nil {
-		return written, err
-	}
+	pollable.AwaitAndDrop(w.stream.Subscribe())
 	return written, nil
 }
 
@@ -99,9 +90,7 @@ func (w *outgoingBody) Close() error {
 
 func (w *outgoingBody) close() error {
 	w.stream.Flush()
-	waitable := w.stream.Subscribe()
-	pollable.Await(waitable) //nolint:errcheck
-	waitable.Drop()
+	pollable.AwaitAndDrop(w.stream.Subscribe())
 	w.stream.Drop()
 	w.stream = nil
 

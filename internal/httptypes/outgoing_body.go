@@ -9,6 +9,7 @@ import (
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/stream"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
@@ -40,43 +41,7 @@ type outgoingBody struct {
 var _ io.WriteCloser = (*outgoingBody)(nil)
 
 func (w *outgoingBody) Write(p []byte) (int, error) {
-	written := 0
-	for written < len(p) {
-		checkRes := w.stream.CheckWrite()
-		if checkRes.IsErr() {
-			if checkRes.Err().Tag() == streams.StreamErrorClosed {
-				return written, io.EOF
-			}
-			return written, fmt.Errorf("failed to check write capacity - %+v", checkRes.Err())
-		}
-		capacity := checkRes.Ok()
-		if capacity == 0 {
-			pollable.AwaitAndDrop(w.stream.Subscribe())
-			continue
-		}
-		chunk := p[written:]
-		if uint64(len(chunk)) > capacity {
-			chunk = chunk[:capacity]
-		}
-		writeRes := w.stream.Write(chunk)
-		if writeRes.IsErr() {
-			if writeRes.Err().Tag() == streams.StreamErrorClosed {
-				return written, io.EOF
-			}
-			return written, fmt.Errorf("failed to write to outgoing body stream - %+v", writeRes.Err())
-		}
-		written += len(chunk)
-	}
-
-	// Flush and wait for the flush to complete.
-	if flushRes := w.stream.Flush(); flushRes.IsErr() {
-		if flushRes.Err().Tag() == streams.StreamErrorClosed {
-			return written, io.EOF
-		}
-		return written, fmt.Errorf("failed to flush outgoing body stream - %+v", flushRes.Err())
-	}
-	pollable.AwaitAndDrop(w.stream.Subscribe())
-	return written, nil
+	return stream.WriteAll(w.stream, p)
 }
 
 // Close flushes, drops the stream, and finishes the body with any trailers

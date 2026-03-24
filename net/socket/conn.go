@@ -7,9 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	wasiStreams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/stream"
 )
 
 // wasiConn implements net.Conn over WASI TCP streams.
@@ -40,34 +41,7 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 }
 
 func (c *wasiConn) Write(b []byte) (int, error) {
-	written := 0
-	for written < len(b) {
-		checkRes := c.writer.CheckWrite()
-		if checkRes.IsErr() {
-			return written, fmt.Errorf("write check error: %v", checkRes.Err().Tag())
-		}
-		capacity := checkRes.Ok()
-		if capacity == 0 {
-			pollable.AwaitAndDrop(c.writer.Subscribe())
-			continue
-		}
-		chunk := b[written:]
-		if uint64(len(chunk)) > capacity {
-			chunk = chunk[:capacity]
-		}
-		res := c.writer.Write(chunk)
-		if res.IsErr() {
-			return written, fmt.Errorf("write error: %v", res.Err().Tag())
-		}
-		written += len(chunk)
-	}
-
-	// Flush and wait for completion.
-	if flushRes := c.writer.Flush(); flushRes.IsErr() {
-		return written, fmt.Errorf("flush error: %v", flushRes.Err().Tag())
-	}
-	pollable.AwaitAndDrop(c.writer.Subscribe())
-	return written, nil
+	return stream.WriteAll(c.writer, b)
 }
 
 func (c *wasiConn) Close() error {

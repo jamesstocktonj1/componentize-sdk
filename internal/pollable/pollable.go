@@ -16,11 +16,11 @@ type Readable interface {
 	Drop()
 }
 
-// Await blocks until the pollable is ready or the context is cancelled.
+// AwaitContext blocks until the pollable is ready or the context is cancelled.
 // Returns ctx.Err() if the context is cancelled before the pollable is ready.
 // Each iteration yields to the Go scheduler then blocks on a host-level timer
 // to allow the WASM host to advance async I/O.
-func Await(ctx context.Context, p Readable) error {
+func AwaitContext(ctx context.Context, p Readable) error {
 	for !p.Ready() {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -34,9 +34,15 @@ func Await(ctx context.Context, p Readable) error {
 	return nil
 }
 
+// Await blocks until the pollable is ready, yielding to the Go scheduler
+// on each iteration to allow other goroutines to run.
+func Await(p Readable) error {
+	return AwaitContext(context.Background(), p)
+}
+
 // BlockAndDrop waits until the pollable is ready using the goroutine-friendly
 // Await, then drops it.
 func BlockAndDrop(p Readable) {
 	defer p.Drop()
-	Await(context.Background(), p) //nolint:errcheck
+	Await(p) //nolint:errcheck
 }

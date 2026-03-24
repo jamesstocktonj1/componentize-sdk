@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -29,7 +28,7 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 	}
 	waitable := c.reader.Subscribe()
 	defer waitable.Drop()
-	if err := pollable.Await(context.Background(), waitable); err != nil {
+	if err := pollable.Await(waitable); err != nil {
 		return 0, err
 	}
 	res := c.reader.Read(uint64(len(b)))
@@ -54,7 +53,7 @@ func (c *wasiConn) Write(b []byte) (int, error) {
 		capacity := checkRes.Ok()
 		if capacity == 0 {
 			waitable := c.writer.Subscribe()
-			if err := pollable.Await(context.Background(), waitable); err != nil {
+			if err := pollable.Await(waitable); err != nil {
 				waitable.Drop()
 				return written, err
 			}
@@ -78,7 +77,7 @@ func (c *wasiConn) Write(b []byte) (int, error) {
 	}
 	waitable := c.writer.Subscribe()
 	defer waitable.Drop()
-	if err := pollable.Await(context.Background(), waitable); err != nil {
+	if err := pollable.Await(waitable); err != nil {
 		return written, err
 	}
 	return written, nil

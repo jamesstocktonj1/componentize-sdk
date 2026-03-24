@@ -1,7 +1,6 @@
 package blobstore
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -44,7 +43,7 @@ func (o *objectImpl) Close() error {
 		return fmt.Errorf("failed to flush outgoing stream: %v", flushRes.Err())
 	}
 	waitable := o.stream.Subscribe()
-	pollable.Await(context.Background(), waitable) //nolint:errcheck
+	pollable.Await(waitable) //nolint:errcheck
 	waitable.Drop()
 	o.stream.Drop()
 	contWriteRes := o.cont.WriteData(o.name, o.outgoing)

@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"context"
 	"fmt"
 	"net"
 
@@ -48,7 +47,7 @@ func resolveAddress(n *wasiNetwork.Network, host string, port uint16) (wasiNetwo
 
 	for {
 		p := stream.Subscribe()
-		pollable.Await(context.Background(), p) //nolint:errcheck
+		pollable.Await(p) //nolint:errcheck
 		p.Drop()
 
 		addrRes := stream.ResolveNextAddress()

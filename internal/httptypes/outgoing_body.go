@@ -1,7 +1,6 @@
 package httptypes
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -53,7 +52,7 @@ func (w *outgoingBody) Write(p []byte) (int, error) {
 		capacity := checkRes.Ok()
 		if capacity == 0 {
 			waitable := w.stream.Subscribe()
-			if err := pollable.Await(context.Background(), waitable); err != nil {
+			if err := pollable.Await(waitable); err != nil {
 				waitable.Drop()
 				return written, err
 			}
@@ -83,7 +82,7 @@ func (w *outgoingBody) Write(p []byte) (int, error) {
 	}
 	waitable := w.stream.Subscribe()
 	defer waitable.Drop()
-	if err := pollable.Await(context.Background(), waitable); err != nil {
+	if err := pollable.Await(waitable); err != nil {
 		return written, err
 	}
 	return written, nil
@@ -101,7 +100,7 @@ func (w *outgoingBody) Close() error {
 func (w *outgoingBody) close() error {
 	w.stream.Flush()
 	waitable := w.stream.Subscribe()
-	pollable.Await(context.Background(), waitable) //nolint:errcheck
+	pollable.Await(waitable) //nolint:errcheck
 	waitable.Drop()
 	w.stream.Drop()
 	w.stream = nil

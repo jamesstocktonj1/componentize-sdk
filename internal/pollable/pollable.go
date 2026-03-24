@@ -40,9 +40,9 @@ func Await(p Readable) error {
 	return AwaitContext(context.Background(), p)
 }
 
-// BlockAndDrop waits until the pollable is ready using the goroutine-friendly
+// AwaitAndDrop waits until the pollable is ready using the goroutine-friendly
 // Await, then drops it.
-func BlockAndDrop(p Readable) {
+func AwaitAndDrop(p Readable) {
 	defer p.Drop()
 	Await(p) //nolint:errcheck
 }

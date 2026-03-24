@@ -29,7 +29,7 @@ func Dial(network string, address string) (net.Conn, error) {
 	}
 
 	for {
-		pollable.BlockAndDrop(sock.Subscribe())
+		pollable.AwaitAndDrop(sock.Subscribe())
 
 		res := sock.FinishConnect()
 		if res.IsErr() {
@@ -63,7 +63,7 @@ func Listen(network string, address string) (net.Listener, error) {
 	}
 
 	for {
-		pollable.BlockAndDrop(sock.Subscribe())
+		pollable.AwaitAndDrop(sock.Subscribe())
 
 		res := sock.FinishBind()
 		if res.IsErr() {
@@ -83,7 +83,7 @@ func Listen(network string, address string) (net.Listener, error) {
 	}
 
 	for {
-		pollable.BlockAndDrop(sock.Subscribe())
+		pollable.AwaitAndDrop(sock.Subscribe())
 
 		res := sock.FinishListen()
 		if res.IsErr() {

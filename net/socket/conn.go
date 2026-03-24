@@ -41,7 +41,7 @@ func (c *wasiConn) Read(b []byte) (int, error) {
 }
 
 func (c *wasiConn) Write(b []byte) (int, error) {
-	return stream.WriteAll(c.writer, b)
+	return stream.WriteStream(c.writer, b)
 }
 
 func (c *wasiConn) Close() error {

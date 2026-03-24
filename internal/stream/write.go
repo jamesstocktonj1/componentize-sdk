@@ -8,9 +8,9 @@ import (
 	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
-// WriteAll writes p to stream in capacity-limited chunks, blocking as needed,
+// WriteStream writes p to stream in capacity-limited chunks, blocking as needed,
 // then flushes and waits for the flush to complete.
-func WriteAll(s *streams.OutputStream, p []byte) (int, error) {
+func WriteStream(s *streams.OutputStream, p []byte) (int, error) {
 	written := 0
 	for written < len(p) {
 		checkRes := s.CheckWrite()

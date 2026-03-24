@@ -41,7 +41,7 @@ type outgoingBody struct {
 var _ io.WriteCloser = (*outgoingBody)(nil)
 
 func (w *outgoingBody) Write(p []byte) (int, error) {
-	return stream.WriteAll(w.stream, p)
+	return stream.WriteStream(w.stream, p)
 }
 
 // Close flushes, drops the stream, and finishes the body with any trailers

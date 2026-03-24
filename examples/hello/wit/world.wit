@@ -1,5 +1,6 @@
 package jamesstocktonj1:componentize-sdk-examples-hello;
 
 world hello {
+  import jamesstocktonj1:componentize-sdk-examples-greeting/greet;
   export wasi:http/incoming-handler@0.2.0;
 }

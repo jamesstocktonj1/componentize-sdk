@@ -1,0 +1,9 @@
+package jamesstocktonj1:componentize-sdk-examples-greeting;
+
+interface greet {
+  greet: func(name: string) -> string;
+}
+
+world component {
+  export greet;
+}

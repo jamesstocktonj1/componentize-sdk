@@ -34,3 +34,7 @@ go.work.sum
 # Wasm files
 **/wit/deps
 **/build/
+
+# Examples
+examples/**/gen/wasi*
+examples/**/gen/wit*

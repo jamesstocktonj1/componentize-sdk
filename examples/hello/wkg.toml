@@ -1,0 +1,2 @@
+[overrides]
+"jamesstocktonj1:componentize-sdk-examples-greeting" = { path = "../greeting/wit" }

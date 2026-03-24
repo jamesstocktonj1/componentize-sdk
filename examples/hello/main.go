@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	greet "github.com/jamesstocktonj1/componentize-sdk/examples/hello/gen/jamesstocktonj1_componentize_sdk_examples_greeting_greet"
 	"github.com/jamesstocktonj1/componentize-sdk/net/wasihttp"
 )
 
@@ -19,7 +20,7 @@ func init() {
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello, World!")
+	fmt.Fprintln(w, greet.Greet("World"))
 }
 
 func echo(w http.ResponseWriter, r *http.Request) {

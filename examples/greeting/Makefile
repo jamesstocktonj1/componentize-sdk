@@ -6,22 +6,17 @@ fetch:
 .PHONY: bindings
 bindings: fetch
 	@echo "Generating wit-bindgen bindings"
-	@componentize-go --world hello bindings \
-		--pkg-name github.com/jamesstocktonj1/componentize-sdk/examples/hello/gen \
+	@componentize-go --world component bindings \
+		--pkg-name github.com/jamesstocktonj1/componentize-sdk/examples/greeting/gen \
 		--output gen \
 		--format
 
 .PHONY: build
 build: bindings
 	@echo "Building component"
-	@componentize-go --world hello build --output build/hello.wasm
+	@componentize-go --world component build --output build/greeting.wasm
 
 .PHONY: clean
 clean:
 	@echo "Cleaning files"
 	@rm -rf build wit/deps
-
-.PHONY: run
-run: build
-	@echo "Starting wasmtime"
-	@wasmtime serve --addr 0.0.0.0:8000 -Scli build/hello.wasm

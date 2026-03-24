@@ -17,6 +17,8 @@ jobs:
           - examples/hello
           - examples/client
           - examples/blobby
+          - examples/socket-client
+          - examples/socket-server
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -54,7 +54,12 @@ func (w *outgoingBody) Close() error {
 }
 
 func (w *outgoingBody) close() error {
-	w.stream.Flush()
+	if flushRes := w.stream.Flush(); flushRes.IsErr() {
+		if flushRes.Err().Tag() == streams.StreamErrorClosed {
+			return io.EOF
+		}
+		return fmt.Errorf("failed to flush outgoing body stream: %v", flushRes.Err())
+	}
 	pollable.AwaitAndDrop(w.stream.Subscribe())
 	w.stream.Drop()
 	w.stream = nil

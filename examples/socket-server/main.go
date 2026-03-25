@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"net"
+	"time"
 
 	"github.com/jamesstocktonj1/componentize-sdk/examples/socket-server/gen/export_wasi_cli_run"
 	_ "github.com/jamesstocktonj1/componentize-sdk/examples/socket-server/gen/wit_exports"
@@ -25,10 +26,7 @@ func run() {
 			panic(err)
 		}
 
-		err = handleConnection(conn)
-		if err != nil {
-			panic(err)
-		}
+		go handleConnection(conn)
 	}
 }
 
@@ -39,6 +37,8 @@ func handleConnection(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(time.Second)
 
 	revData := toLeetSpeak(data)
 	_, err = conn.Write(revData)

@@ -44,11 +44,9 @@ jobs:
         with:
           wash-version: wash-v2.0.0-rc.8
       - name: Install componentize-go
-        uses: taiki-e/cache-cargo-install-action@v3
+        uses: jamesstocktonj1/componentize-go/.github/actions/setup-componentize-go@feat/setup-action
         with:
-          tool: componentize-go
-          git: https://github.com/bytecodealliance/componentize-go
-          tag: canary
+          version: canary
       - name: Run Build
         working-directory: ${{ matrix.function }}
         run: |

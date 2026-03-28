@@ -1,6 +1,9 @@
 package jamesstocktonj1:componentize-sdk;
 
 world sdk {
+  /// messaging
+  import wasmcloud:messaging/handler@0.2.0;
+
   /// blobstore
   import wasi:blobstore/blobstore@0.2.0-draft;
 

@@ -3,6 +3,15 @@
 version = 1
 
 [[packages]]
+name = "wasmcloud:messaging"
+registry = "wkg.io"
+
+[[packages.versions]]
+requirement = "=0.2.0"
+version = "0.2.0"
+digest = "sha256:b0c1e11a3ed99009e83e91218e870843d1d1399d2f39c28f01b0add86bce7cdd"
+
+[[packages]]
 name = "wasi:blobstore"
 registry = "wasi.dev"
 

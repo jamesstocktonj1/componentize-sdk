@@ -4,12 +4,12 @@
 //     wasi:io@0.2.0
 //     wasi:clocks@0.2.0
 //     wasi:sockets@0.2.0
+//     wasmcloud:messaging@0.2.0
 //     wasi:io@0.2.1
 //     wasi:blobstore@0.2.0-draft
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0
-//     wasmcloud:messaging@0.2.0
 //     jamesstocktonj1:componentize-sdk
 
 package wasmcloud_messaging_handler
@@ -32,31 +32,31 @@ func HandleMessage(msg wasmcloud_messaging_types.BrokerMessage) witTypes.Result[
 	defer pinner.Unpin()
 
 	returnArea := uintptr(witRuntime.Allocate(pinner, (3 * 4), 4))
-	utf8 := unsafe.Pointer(unsafe.StringData(msg.Subject))
+	utf8 := unsafe.Pointer(unsafe.StringData((msg).Subject))
 	pinner.Pin(utf8)
-	data := unsafe.Pointer(unsafe.SliceData(msg.Body))
+	data := unsafe.Pointer(unsafe.SliceData((msg).Body))
 	pinner.Pin(data)
 	var option int32
-	var option0 uintptr
-	var option1 uint32
-	switch msg.ReplyTo.Tag() {
+	var option1 uintptr
+	var option2 uint32
+	switch (msg).ReplyTo.Tag() {
 	case witTypes.OptionNone:
 
 		option = int32(0)
-		option0 = 0
 		option1 = 0
+		option2 = 0
 	case witTypes.OptionSome:
-		payload := msg.ReplyTo.Some()
-		utf8rt := unsafe.Pointer(unsafe.StringData(payload))
-		pinner.Pin(utf8rt)
+		payload := (msg).ReplyTo.Some()
+		utf80 := unsafe.Pointer(unsafe.StringData(payload))
+		pinner.Pin(utf80)
 
 		option = int32(1)
-		option0 = uintptr(utf8rt)
-		option1 = uint32(len(payload))
+		option1 = uintptr(utf80)
+		option2 = uint32(len(payload))
 	default:
 		panic("unreachable")
 	}
-	wasm_import_handle_message(uintptr(utf8), uint32(len(msg.Subject)), uintptr(data), uint32(len(msg.Body)), option, option0, option1, returnArea)
+	wasm_import_handle_message(uintptr(utf8), uint32(len((msg).Subject)), uintptr(data), uint32(len((msg).Body)), option, option1, option2, returnArea)
 	var result witTypes.Result[witTypes.Unit, string]
 	switch uint8(*(*uint32)(unsafe.Add(unsafe.Pointer(returnArea), 0))) {
 	case 0:
@@ -69,7 +69,7 @@ func HandleMessage(msg wasmcloud_messaging_types.BrokerMessage) witTypes.Result[
 	default:
 		panic("unreachable")
 	}
-	result0 := result
-	return result0
+	result3 := result
+	return result3
 
 }

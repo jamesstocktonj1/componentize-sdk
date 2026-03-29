@@ -4,6 +4,7 @@
 //     wasi:io@0.2.0
 //     wasi:clocks@0.2.0
 //     wasi:sockets@0.2.0
+//     wasmcloud:messaging@0.2.0
 //     wasi:io@0.2.1
 //     wasi:blobstore@0.2.0-draft
 //     wasi:random@0.2.0

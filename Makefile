@@ -4,6 +4,7 @@ clean:
 	@rm -rf wit/deps
 	@rm -rf gen/wasi*
 	@rm -rf gen/wit*
+	@rm -rf gen/wasmcloud*
 
 .PHONY: fetch
 fetch:

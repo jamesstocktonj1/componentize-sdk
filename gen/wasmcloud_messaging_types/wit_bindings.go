@@ -4,12 +4,12 @@
 //     wasi:io@0.2.0
 //     wasi:clocks@0.2.0
 //     wasi:sockets@0.2.0
+//     wasmcloud:messaging@0.2.0
 //     wasi:io@0.2.1
 //     wasi:blobstore@0.2.0-draft
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0
-//     wasmcloud:messaging@0.2.0
 //     jamesstocktonj1:componentize-sdk
 
 package wasmcloud_messaging_types
@@ -18,7 +18,7 @@ import (
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-// BrokerMessage is a message sent to or received from a broker.
+// A message sent to or received from a broker
 type BrokerMessage struct {
 	Subject string
 	Body    []uint8

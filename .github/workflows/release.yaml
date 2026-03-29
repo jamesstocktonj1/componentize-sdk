@@ -38,7 +38,7 @@ jobs:
       - name: Publish artifact
         uses: wasmcloud/actions/wash-oci-publish@main
         with:
-          component_path: examples/${{ matrix.function }}/build/*.wasm
+          component_path: examples/${{ matrix.function }}/build/${{ matrix.function }}.wasm
           image_tags: ${{ github.ref_name }}
 
   release:

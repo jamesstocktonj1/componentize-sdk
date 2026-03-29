@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  packages: write
+
 jobs:
   build-examples:
     name: Build Example - ${{ matrix.function }}

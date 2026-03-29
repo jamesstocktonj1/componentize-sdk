@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  packages: write
+
 jobs:
   build-examples:
     name: Build Example - ${{ matrix.function }}
@@ -14,11 +17,11 @@ jobs:
       fail-fast: false
       matrix:
         function:
-          - examples/hello
-          - examples/client
-          - examples/blobby
-          - examples/socket-client
-          - examples/socket-server
+          - hello
+          - client
+          - blobby
+          - socket-client
+          - socket-server
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,16 +36,19 @@ jobs:
           git: https://github.com/bytecodealliance/componentize-go
           tag: canary
       - name: Run Build
-        working-directory: ${{ matrix.function }}
+        working-directory: examples/${{ matrix.function }}
         run: make build
-      - name: Get function name
-        id: fn
-        run: echo "name=$(basename ${{ matrix.function }})" >> $GITHUB_OUTPUT
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Login to container registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
-          name: ${{ steps.fn.outputs.name }}
-          path: ${{ matrix.function }}/build/*.wasm
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Publish artifact
+        working-directory: examples/${{ matrix.function }}
+        run: |
+          tag=$(echo "${{ github.ref_name }}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' && echo "${{ github.ref_name }}" || echo "canary")
+          wash oci push ghcr.io/${{ github.repository }}/${{ matrix.function }}:${tag} build/*.wasm
 
   release:
     name: Create Release
@@ -54,14 +60,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" artifacts/*.wasm \
-            --generate-notes
+          gh release create "${{ github.ref_name }}" --generate-notes

@@ -6,6 +6,7 @@
 //     wasi:sockets@0.2.0
 //     wasi:io@0.2.1
 //     wasi:blobstore@0.2.0-draft
+//     wasi:logging@0.1.0-draft
 //     wasi:random@0.2.0
 //     wasi:cli@0.2.0
 //     wasi:http@0.2.0

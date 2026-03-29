@@ -38,11 +38,16 @@ jobs:
       - name: Run Build
         working-directory: examples/${{ matrix.function }}
         run: make build
-      - name: Publish artifact
-        uses: wasmcloud/actions/wash-oci-publish@main
+      - name: Login to container registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
-          component_path: examples/${{ matrix.function }}/build/${{ matrix.function }}.wasm
-          image_tags: ${{ github.ref_name }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ inputs.token }}
+      - name: Publish artifact
+        working-directory: examples/${{ matrix.function }}
+        run: |
+          wash oci push ghcr.io/${{ github.repository }}/${{ matrix.function }}:${{ github.ref_name }} build/*.wasm
 
   release:
     name: Create Release

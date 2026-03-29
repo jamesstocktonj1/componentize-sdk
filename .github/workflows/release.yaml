@@ -14,11 +14,11 @@ jobs:
       fail-fast: false
       matrix:
         function:
-          - examples/hello
-          - examples/client
-          - examples/blobby
-          - examples/socket-client
-          - examples/socket-server
+          - hello
+          - client
+          - blobby
+          - socket-client
+          - socket-server
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,16 +33,13 @@ jobs:
           git: https://github.com/bytecodealliance/componentize-go
           tag: canary
       - name: Run Build
-        working-directory: ${{ matrix.function }}
+        working-directory: examples/${{ matrix.function }}
         run: make build
-      - name: Get function name
-        id: fn
-        run: echo "name=$(basename ${{ matrix.function }})" >> $GITHUB_OUTPUT
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Publish artifact
+        uses: wasmcloud/actions/wash-oci-publish@main
         with:
-          name: ${{ steps.fn.outputs.name }}
-          path: ${{ matrix.function }}/build/*.wasm
+          component_path: examples/${{ matrix.function }}/build/*.wasm
+          image_tags: ${{ github.ref_name }}
 
   release:
     name: Create Release

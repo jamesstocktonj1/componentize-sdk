@@ -43,7 +43,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ inputs.token }}
+          password: ${{ github.token }}
       - name: Publish artifact
         working-directory: examples/${{ matrix.function }}
         run: |

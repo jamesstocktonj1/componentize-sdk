@@ -47,7 +47,7 @@ jobs:
       - name: Publish artifact
         working-directory: examples/${{ matrix.function }}
         run: |
-          tag=$(echo "${{ github.ref_name }}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' && echo "${{ github.ref_name }}" || echo "canary")
+          tag=$(echo "${{ github.ref_name }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+' && echo "${{ github.ref_name }}" || echo "canary")
           wash oci push ghcr.io/${{ github.repository }}/${{ matrix.function }}:${tag} build/${{ matrix.function }}.wasm
 
   release:

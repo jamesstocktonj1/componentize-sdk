@@ -1,0 +1,33 @@
+name: Test - Setup Componentize Go
+
+on:
+  pull_request:
+
+jobs:
+  test-setup:
+    name: Test Setup - ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+          - runner: ubuntu-24.0.4
+          - runner: ubuntu-24.0.4-arm
+          - runner: macos-latest
+          - runner: macos-15-intel
+          - runner: macos-15
+          - runner: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install componentize-go
+        uses: jamesstocktonj1/componentize-go/.github/actions/setup-componentize-go@feat/setup-action
+        with:
+          version: v0.2.0
+
+      - name: Build example
+        working-directory: examples/hello
+        run: |
+          make build

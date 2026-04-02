@@ -12,8 +12,8 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-latest
-          - runner: ubuntu-24.0.4
-          - runner: ubuntu-24.0.4-arm
+          - runner: ubuntu-24.04
+          - runner: ubuntu-24.04-arm
           - runner: macos-latest
           - runner: macos-15-intel
           - runner: macos-15
@@ -21,6 +21,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install wash
+        uses: wasmCloud/setup-wash-action@main
+        with:
+          wash-version: wash-v2.0.0-rc.8
 
       - name: Install componentize-go
         uses: jamesstocktonj1/componentize-go/.github/actions/setup-componentize-go@feat/setup-action

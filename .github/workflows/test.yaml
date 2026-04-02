@@ -30,7 +30,7 @@ jobs:
       - name: Install componentize-go
         uses: jamesstocktonj1/componentize-go/.github/actions/setup-componentize-go@feat/setup-action
         with:
-          version: v0.2.0
+          version: canary
 
       - name: Build example
         working-directory: examples/hello

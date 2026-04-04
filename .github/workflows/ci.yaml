@@ -24,6 +24,20 @@ jobs:
           name: coverage
           path: coverage.out
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: --timeout 5m
+          skip-pkg-cache: true
+          skip-build-cache: true
+
   examples-build:
     name: Build Example - ${{ matrix.function }}
     runs-on: ubuntu-latest

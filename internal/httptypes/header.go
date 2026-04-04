@@ -7,8 +7,8 @@ import (
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 )
 
-// MapHttpHeader converts an http.Header into a WASI Fields resource.
-func MapHttpHeader(h http.Header) (*types.Fields, error) {
+// MapHTTPHeader converts an http.Header into a WASI Fields resource.
+func MapHTTPHeader(h http.Header) (*types.Fields, error) {
 	output := types.MakeFields()
 	for key, vals := range h {
 		values := make([][]uint8, len(vals))

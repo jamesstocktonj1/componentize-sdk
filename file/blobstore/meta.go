@@ -18,6 +18,7 @@ func (m *objectMeta) Name() string {
 }
 
 func (m *objectMeta) Size() int64 {
+	//nolint:gosec // os.FileInfo.Size() requires int64; WASI Size is uint64
 	return int64(m.meta.Size)
 }
 
@@ -26,6 +27,7 @@ func (m *objectMeta) Mode() os.FileMode {
 }
 
 func (m *objectMeta) ModTime() time.Time {
+	//nolint:gosec // os.FileInfo.ModTime() requires int64; WASI CreatedAt is uint64
 	return time.Unix(int64(m.meta.CreatedAt), 0)
 }
 

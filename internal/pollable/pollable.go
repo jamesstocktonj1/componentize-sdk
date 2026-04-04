@@ -44,5 +44,5 @@ func Await(p Readable) error {
 // Await, then drops it.
 func AwaitAndDrop(p Readable) {
 	defer p.Drop()
-	Await(p) //nolint:errcheck
+	_ = Await(p)
 }

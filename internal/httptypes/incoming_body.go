@@ -15,7 +15,9 @@ import (
 // NewIncomingBodyReader wraps a consumed IncomingBody as an io.ReadCloser.
 // The returned http.Header map will be populated with trailers once the body
 // has been fully read or closed. The context is used to cancel reads.
-func NewIncomingBodyReader(ctx context.Context, body *types.IncomingBody) (io.ReadCloser, http.Header, error) {
+func NewIncomingBodyReader(
+	ctx context.Context, body *types.IncomingBody,
+) (io.ReadCloser, http.Header, error) {
 	streamRes := body.Stream()
 	if streamRes.IsErr() {
 		return nil, nil, fmt.Errorf("failed to open incoming body stream - %+v", streamRes.Err())

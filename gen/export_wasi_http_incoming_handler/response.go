@@ -64,7 +64,7 @@ func (r *responseHandler) Close() error {
 
 func (r *responseHandler) flush() {
 	var err error
-	r.wasiHeaders, err = httptypes.MapHttpHeader(r.httpHeaders)
+	r.wasiHeaders, err = httptypes.MapHTTPHeader(r.httpHeaders)
 	if err != nil {
 		r.sendError(err)
 		return

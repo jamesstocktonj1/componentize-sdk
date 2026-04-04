@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
+
+	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 )
 
 func mapMethod(m string) types.Method {

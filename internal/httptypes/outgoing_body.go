@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"sync"
 
+	witTypes "go.bytecodealliance.org/pkg/wit/types"
+
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	streams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/stream"
-	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
 // NewOutgoingBodyWriter wraps an OutgoingBody as an outgoingBody.
@@ -66,7 +67,7 @@ func (w *outgoingBody) close() error {
 
 	optTrailer := witTypes.None[*types.Fields]()
 	if len(w.trailer) > 0 {
-		wasiTrailer, err := MapHttpHeader(w.trailer)
+		wasiTrailer, err := MapHTTPHeader(w.trailer)
 		if err != nil {
 			return err
 		}

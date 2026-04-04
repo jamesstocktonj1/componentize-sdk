@@ -63,7 +63,9 @@ func mapErrorCode(code wasiNetwork.ErrorCode) error {
 	}
 }
 
-func mapIpAddress(addr wasiNetwork.IpSocketAddress) net.Addr {
+const byteBits = 8
+
+func mapIPAddress(addr wasiNetwork.IpSocketAddress) net.Addr {
 	if addr.Tag() == wasiNetwork.IpSocketAddressIpv4 {
 		v4 := addr.Ipv4()
 		return &net.TCPAddr{
@@ -72,23 +74,23 @@ func mapIpAddress(addr wasiNetwork.IpSocketAddress) net.Addr {
 		}
 	}
 	v6 := addr.Ipv6()
-	ip := make(net.IP, 16)
-	ip[0] = byte(v6.Address.F0 >> 8)
-	ip[1] = byte(v6.Address.F0)
-	ip[2] = byte(v6.Address.F1 >> 8)
-	ip[3] = byte(v6.Address.F1)
-	ip[4] = byte(v6.Address.F2 >> 8)
-	ip[5] = byte(v6.Address.F2)
-	ip[6] = byte(v6.Address.F3 >> 8)
-	ip[7] = byte(v6.Address.F3)
-	ip[8] = byte(v6.Address.F4 >> 8)
-	ip[9] = byte(v6.Address.F4)
-	ip[10] = byte(v6.Address.F5 >> 8)
-	ip[11] = byte(v6.Address.F5)
-	ip[12] = byte(v6.Address.F6 >> 8)
-	ip[13] = byte(v6.Address.F6)
-	ip[14] = byte(v6.Address.F7 >> 8)
-	ip[15] = byte(v6.Address.F7)
+	ip := make(net.IP, net.IPv6len)
+	ip[0] = byte(v6.Address.F0 >> byteBits)
+	ip[1] = byte(v6.Address.F0) //nolint:gosec // intentional: low byte of uint16
+	ip[2] = byte(v6.Address.F1 >> byteBits)
+	ip[3] = byte(v6.Address.F1) //nolint:gosec // intentional: low byte of uint16
+	ip[4] = byte(v6.Address.F2 >> byteBits)
+	ip[5] = byte(v6.Address.F2) //nolint:gosec // intentional: low byte of uint16
+	ip[6] = byte(v6.Address.F3 >> byteBits)
+	ip[7] = byte(v6.Address.F3) //nolint:gosec // intentional: low byte of uint16
+	ip[8] = byte(v6.Address.F4 >> byteBits)
+	ip[9] = byte(v6.Address.F4) //nolint:gosec // intentional: low byte of uint16
+	ip[10] = byte(v6.Address.F5 >> byteBits)
+	ip[11] = byte(v6.Address.F5) //nolint:gosec // intentional: low byte of uint16
+	ip[12] = byte(v6.Address.F6 >> byteBits)
+	ip[13] = byte(v6.Address.F6) //nolint:gosec // intentional: low byte of uint16
+	ip[14] = byte(v6.Address.F7 >> byteBits)
+	ip[15] = byte(v6.Address.F7) //nolint:gosec // intentional: low byte of uint16
 	return &net.TCPAddr{
 		IP:   ip,
 		Port: int(v6.Port),

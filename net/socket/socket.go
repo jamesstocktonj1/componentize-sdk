@@ -18,7 +18,7 @@ func Dial(network string, address string) (net.Conn, error) {
 		return nil, err
 	}
 
-	sock, err := createTcpSocket(remoteAddr)
+	sock, err := createTCPSocket(remoteAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func Listen(network string, address string) (net.Listener, error) {
 		return nil, err
 	}
 
-	sock, err := createTcpSocket(localAddr)
+	sock, err := createTCPSocket(localAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -105,17 +105,21 @@ func Listen(network string, address string) (net.Listener, error) {
 
 	return &wasiListener{
 		socket: sock,
-		addr:   mapIpAddress(addrRes.Ok()),
+		addr:   mapIPAddress(addrRes.Ok()),
 	}, nil
 }
 
-func resolveNetworkAddress(network, address string, defaultHost string) (*wasiNetwork.Network, wasiNetwork.IpSocketAddress, error) {
+func resolveNetworkAddress(
+	network, address string, defaultHost string,
+) (*wasiNetwork.Network, wasiNetwork.IpSocketAddress, error) {
 	if network != "tcp" && network != "tcp4" && network != "tcp6" {
-		return nil, wasiNetwork.IpSocketAddress{}, fmt.Errorf("unsupported network %q: only tcp is supported", network)
+		return nil, wasiNetwork.IpSocketAddress{},
+			fmt.Errorf("unsupported network %q: only tcp is supported", network)
 	}
 	host, portStr, err := net.SplitHostPort(address)
 	if err != nil {
-		return nil, wasiNetwork.IpSocketAddress{}, fmt.Errorf("invalid address %q: %w", address, err)
+		return nil, wasiNetwork.IpSocketAddress{},
+			fmt.Errorf("invalid address %q: %w", address, err)
 	}
 	port, err := strconv.ParseUint(portStr, 10, 16)
 	if err != nil {
@@ -132,7 +136,7 @@ func resolveNetworkAddress(network, address string, defaultHost string) (*wasiNe
 	return n, addr, nil
 }
 
-func createTcpSocket(addr wasiNetwork.IpSocketAddress) (*wasiTcp.TcpSocket, error) {
+func createTCPSocket(addr wasiNetwork.IpSocketAddress) (*wasiTcp.TcpSocket, error) {
 	res := wasiTcpCreate.CreateTcpSocket(mapAddressFamily(addr))
 	if res.IsErr() {
 		return nil, mapErrorCode(res.Err())

@@ -13,7 +13,9 @@ import (
 // For IP literals the address is used directly. For hostnames, WASI IP name
 // lookup is used and the first address returned is used — no fallback to
 // subsequent addresses is attempted.
-func resolveAddress(n *wasiNetwork.Network, host string, port uint16) (wasiNetwork.IpSocketAddress, error) {
+func resolveAddress(
+	n *wasiNetwork.Network, host string, port uint16,
+) (wasiNetwork.IpSocketAddress, error) {
 	ip := net.ParseIP(host)
 	if ip != nil {
 		if ip4 := ip.To4(); ip4 != nil {

@@ -10,7 +10,9 @@ import (
 	"github.com/jamesstocktonj1/componentize-sdk/internal/httptypes"
 )
 
-func parseFutureResponse(ctx context.Context, resp *types.FutureIncomingResponse) (*http.Response, error) {
+func parseFutureResponse(
+	ctx context.Context, resp *types.FutureIncomingResponse,
+) (*http.Response, error) {
 	optResponse := resp.Get()
 	if optResponse.IsNone() {
 		return nil, errors.New("failed to fetch future response - response is empty")
@@ -28,7 +30,9 @@ func parseFutureResponse(ctx context.Context, resp *types.FutureIncomingResponse
 	return parseIncomingResponse(ctx, innerResponse.Ok())
 }
 
-func parseIncomingResponse(ctx context.Context, resp *types.IncomingResponse) (*http.Response, error) {
+func parseIncomingResponse(
+	ctx context.Context, resp *types.IncomingResponse,
+) (*http.Response, error) {
 	header := http.Header{}
 	for _, v := range resp.Headers().Entries() {
 		header.Add(v.F0, string(v.F1))
@@ -47,7 +51,9 @@ func parseIncomingResponse(ctx context.Context, resp *types.IncomingResponse) (*
 	}, nil
 }
 
-func newResponseBody(ctx context.Context, resp *types.IncomingResponse) (io.ReadCloser, http.Header, error) {
+func newResponseBody(
+	ctx context.Context, resp *types.IncomingResponse,
+) (io.ReadCloser, http.Header, error) {
 	bodyRes := resp.Consume()
 	if bodyRes.IsErr() {
 		return nil, nil, errors.New("failed to consume incoming response")

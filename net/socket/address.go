@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	ipNameLookup "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_ip_name_lookup"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
 // resolveAddress resolves a host:port into a WASI IpSocketAddress.

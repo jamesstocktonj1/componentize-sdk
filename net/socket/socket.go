@@ -5,11 +5,11 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	instanceNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_instance_network"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
 	wasiTcpCreate "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp_create_socket"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
 func Dial(network string, address string) (net.Conn, error) {

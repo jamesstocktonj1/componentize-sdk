@@ -4,7 +4,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/jamesstocktonj1/componentize-sdk/examples/socket-server/gen/export_wasi_cli_run"
+	export_wasi_cli_run "github.com/jamesstocktonj1/componentize-sdk/examples/socket-server/gen/export_wasi_cli_0_2_6_run"
 	_ "github.com/jamesstocktonj1/componentize-sdk/examples/socket-server/gen/wit_exports"
 	"github.com/jamesstocktonj1/componentize-sdk/net/socket"
 )

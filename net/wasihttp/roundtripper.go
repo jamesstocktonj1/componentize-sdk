@@ -14,7 +14,7 @@ var _ http.RoundTripper = (*Transport)(nil)
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// parse request
-	outRequest := parseHttpRequest(req)
+	outRequest := parseHTTPRequest(req)
 
 	// open outgoing request body
 	bodyRes := outRequest.Body()
@@ -39,8 +39,8 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// wait for response
 	waitable := futureResp.Subscribe()
 	defer waitable.Drop()
-	if err := pollable.AwaitContext(req.Context(), waitable); err != nil {
-		return nil, err
+	if awaitErr := pollable.AwaitContext(req.Context(), waitable); awaitErr != nil {
+		return nil, awaitErr
 	}
 
 	// parse response

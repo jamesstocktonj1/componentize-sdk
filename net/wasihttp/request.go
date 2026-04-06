@@ -5,18 +5,19 @@ import (
 	"net/http"
 	"net/url"
 
+	witTypes "go.bytecodealliance.org/pkg/wit/types"
+
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/httptypes"
-	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
+func parseHTTPRequest(req *http.Request) *types.OutgoingRequest {
 	resp := newOutgoingRequest(req.Header)
 
 	resp.SetAuthority(witTypes.Some(req.Host))
 	resp.SetMethod(mapMethod(req.Method))
 	resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
-	resp.SetScheme(mapUrlScheme(req.URL))
+	resp.SetScheme(mapURLScheme(req.URL))
 
 	return resp
 }
@@ -31,7 +32,7 @@ func newOutgoingRequest(h http.Header) *types.OutgoingRequest {
 	return types.MakeOutgoingRequest(outHeaders)
 }
 
-func mapUrlScheme(u *url.URL) witTypes.Option[types.Scheme] {
+func mapURLScheme(u *url.URL) witTypes.Option[types.Scheme] {
 	switch u.Scheme {
 	case "http":
 		return witTypes.Some(types.MakeSchemeHttp())
@@ -50,8 +51,8 @@ func finishRequestBody(req *http.Request, body *types.OutgoingBody) error {
 
 	if req.Body != nil {
 		defer req.Body.Close()
-		if _, err := io.Copy(writer, req.Body); err != nil {
-			return err
+		if _, copyErr := io.Copy(writer, req.Body); copyErr != nil {
+			return copyErr
 		}
 	}
 

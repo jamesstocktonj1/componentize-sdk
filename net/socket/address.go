@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	ipNameLookup "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_ip_name_lookup"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
 // resolveAddress resolves a host:port into a WASI IpSocketAddress.
 // For IP literals the address is used directly. For hostnames, WASI IP name
 // lookup is used and the first address returned is used — no fallback to
 // subsequent addresses is attempted.
-func resolveAddress(n *wasiNetwork.Network, host string, port uint16) (wasiNetwork.IpSocketAddress, error) {
+func resolveAddress(
+	n *wasiNetwork.Network, host string, port uint16,
+) (wasiNetwork.IpSocketAddress, error) {
 	ip := net.ParseIP(host)
 	if ip != nil {
 		if ip4 := ip.To4(); ip4 != nil {

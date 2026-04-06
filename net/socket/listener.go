@@ -3,9 +3,9 @@ package socket
 import (
 	"net"
 
-	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
 // wasiListener implements net.Listener over a WASI TCP socket.

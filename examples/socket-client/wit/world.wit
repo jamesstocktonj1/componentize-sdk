@@ -1,6 +1,0 @@
-package jamesstocktonj1:componentize-sdk-examples-socket-client;
-
-world client {
-  include wasi:sockets/imports@0.2.0;
-  export wasi:http/incoming-handler@0.2.0;
-}

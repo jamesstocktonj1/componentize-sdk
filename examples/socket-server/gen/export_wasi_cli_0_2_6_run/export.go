@@ -1,4 +1,4 @@
-package export_wasi_cli_run
+package export_wasi_cli_0_2_6_run
 
 import witTypes "go.bytecodealliance.org/pkg/wit/types"
 

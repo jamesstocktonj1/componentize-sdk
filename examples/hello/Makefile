@@ -1,12 +1,7 @@
-.PHONY: fetch
-fetch:
-	@echo "Fetching wit dependencies"
-	@wash wit fetch
-
 .PHONY: build
-build: fetch
+build:
 	@echo "Building component"
-	@componentize-go --world hello build --output build/hello.wasm
+	@componentize-go build --output build/hello.wasm
 
 .PHONY: clean
 clean:

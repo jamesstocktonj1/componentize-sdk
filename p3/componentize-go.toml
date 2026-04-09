@@ -1,2 +1,2 @@
 wit_paths = ["./wit"]
-worlds = ["sdk"]
+worlds = ["componentize-sdk-p3"]

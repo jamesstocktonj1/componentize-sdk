@@ -1,6 +1,6 @@
 package jamesstocktonj1:componentize-sdk-p3;
 
-world sdk {
+world componentize-sdk-p3 {
   /// p3/net/wasihttp
   include wasi:http/service@0.3.0-rc-2026-03-15;
 }

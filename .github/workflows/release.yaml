@@ -18,7 +18,9 @@ jobs:
       matrix:
         function:
           - hello
+          - hello-p3
           - client
+          - client-p3
           - blobby
           - socket-client
           - socket-server

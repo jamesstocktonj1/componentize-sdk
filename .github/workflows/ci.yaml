@@ -32,7 +32,9 @@ jobs:
       matrix:
         function:
           - examples/hello
+          - examples/hello-p3
           - examples/client
+          - examples/client-p3
           - examples/blobby
           - examples/socket-client
           - examples/socket-server

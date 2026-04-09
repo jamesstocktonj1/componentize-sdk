@@ -26,8 +26,6 @@ type responseHandler struct {
 	httpHeaders http.Header
 
 	headerOnce sync.Once
-	headerErr  error
-
 	statusCode int
 }
 

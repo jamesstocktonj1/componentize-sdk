@@ -1,7 +1,0 @@
-services:
-  mockserver:
-    image: madflojo/mockitout:latest
-    ports:
-      - 8080:8443
-    environment:
-      - ENABLE_TLS=false

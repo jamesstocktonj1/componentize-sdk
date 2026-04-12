@@ -29,7 +29,7 @@ func newHttpRequest(request *httpTypes.Request) (*http.Request, error) {
 	headers := request.GetHeaders()
 	httpHeaders := http.Header{}
 	for _, vals := range headers.CopyAll() {
-		httpHeaders.Set(vals.F0, string(vals.F1))
+		httpHeaders.Add(vals.F0, string(vals.F1))
 	}
 	headers.Drop()
 

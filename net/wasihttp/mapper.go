@@ -70,128 +70,199 @@ func mapErrorCode(e types.ErrorCode) error {
 	switch e.Tag() {
 	case types.ErrorCodeDnsTimeout:
 		return ErrDnsTimeout
+
 	case types.ErrorCodeDnsError:
 		p := e.DnsError()
-		return fmt.Errorf("DNS error: rcode=%q, infoCode=%d", p.Rcode.SomeOr(""), p.InfoCode.SomeOr(0))
+		rcode, infoCode := "", uint16(0)
+		if !p.Rcode.IsNone() {
+			rcode = p.Rcode.Some()
+		}
+		if !p.InfoCode.IsNone() {
+			infoCode = p.InfoCode.Some()
+		}
+		return fmt.Errorf("DNS error: rcode=%q, infoCode=%d", rcode, infoCode)
+
 	case types.ErrorCodeDestinationNotFound:
 		return ErrDestinationNotFound
+
 	case types.ErrorCodeDestinationUnavailable:
 		return ErrDestinationUnavailable
+
 	case types.ErrorCodeDestinationIpProhibited:
 		return ErrDestinationIpProhibited
+
 	case types.ErrorCodeDestinationIpUnroutable:
 		return ErrDestinationIpUnroutable
+
 	case types.ErrorCodeConnectionRefused:
 		return ErrConnectionRefused
+
 	case types.ErrorCodeConnectionTerminated:
 		return ErrConnectionTerminated
+
 	case types.ErrorCodeConnectionTimeout:
 		return ErrConnectionTimeout
+
 	case types.ErrorCodeConnectionReadTimeout:
 		return ErrConnectionReadTimeout
+
 	case types.ErrorCodeConnectionWriteTimeout:
 		return ErrConnectionWriteTimeout
+
 	case types.ErrorCodeConnectionLimitReached:
 		return ErrConnectionLimitReached
+
 	case types.ErrorCodeTlsProtocolError:
 		return ErrTlsProtocolError
+
 	case types.ErrorCodeTlsCertificateError:
 		return ErrTlsCertificateError
+
 	case types.ErrorCodeTlsAlertReceived:
 		p := e.TlsAlertReceived()
-		return fmt.Errorf("TLS alert received: alertId=%d, alertMessage=%q", p.AlertId.SomeOr(0), p.AlertMessage.SomeOr(""))
+		alertId, alertMsg := uint8(0), ""
+		if !p.AlertId.IsNone() {
+			alertId = p.AlertId.Some()
+		}
+		if !p.AlertMessage.IsNone() {
+			alertMsg = p.AlertMessage.Some()
+		}
+		return fmt.Errorf("TLS alert received: alertId=%d, alertMessage=%q", alertId, alertMsg)
+
 	case types.ErrorCodeHttpRequestDenied:
 		return ErrHttpRequestDenied
+
 	case types.ErrorCodeHttpRequestLengthRequired:
 		return ErrHttpRequestLengthRequired
+
 	case types.ErrorCodeHttpRequestBodySize:
-		size := e.HttpRequestBodySize()
-		if size.IsSome() {
+		if size := e.HttpRequestBodySize(); !size.IsNone() {
 			return fmt.Errorf("HTTP request body size error: limit=%d", size.Some())
 		}
 		return fmt.Errorf("HTTP request body size error")
+
 	case types.ErrorCodeHttpRequestMethodInvalid:
 		return ErrHttpRequestMethodInvalid
+
 	case types.ErrorCodeHttpRequestUriInvalid:
 		return ErrHttpRequestUriInvalid
+
 	case types.ErrorCodeHttpRequestUriTooLong:
 		return ErrHttpRequestUriTooLong
+
 	case types.ErrorCodeHttpRequestHeaderSectionSize:
-		size := e.HttpRequestHeaderSectionSize()
-		if size.IsSome() {
+		if size := e.HttpRequestHeaderSectionSize(); !size.IsNone() {
 			return fmt.Errorf("HTTP request header section size error: limit=%d", size.Some())
 		}
 		return fmt.Errorf("HTTP request header section size error")
+
 	case types.ErrorCodeHttpRequestHeaderSize:
-		opt := e.HttpRequestHeaderSize()
-		if opt.IsSome() {
+		if opt := e.HttpRequestHeaderSize(); !opt.IsNone() {
 			p := opt.Some()
-			return fmt.Errorf("HTTP request header size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+			fieldName, fieldSize := "", uint32(0)
+			if !p.FieldName.IsNone() {
+				fieldName = p.FieldName.Some()
+			}
+			if !p.FieldSize.IsNone() {
+				fieldSize = p.FieldSize.Some()
+			}
+			return fmt.Errorf("HTTP request header size error: field=%q, limit=%d", fieldName, fieldSize)
 		}
 		return fmt.Errorf("HTTP request header size error")
+
 	case types.ErrorCodeHttpRequestTrailerSectionSize:
-		size := e.HttpRequestTrailerSectionSize()
-		if size.IsSome() {
+		if size := e.HttpRequestTrailerSectionSize(); !size.IsNone() {
 			return fmt.Errorf("HTTP request trailer section size error: limit=%d", size.Some())
 		}
 		return fmt.Errorf("HTTP request trailer section size error")
+
 	case types.ErrorCodeHttpRequestTrailerSize:
 		p := e.HttpRequestTrailerSize()
-		return fmt.Errorf("HTTP request trailer size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+		fieldName, fieldSize := "", uint32(0)
+		if !p.FieldName.IsNone() {
+			fieldName = p.FieldName.Some()
+		}
+		if !p.FieldSize.IsNone() {
+			fieldSize = p.FieldSize.Some()
+		}
+		return fmt.Errorf("HTTP request trailer size error: field=%q, limit=%d", fieldName, fieldSize)
+
 	case types.ErrorCodeHttpResponseIncomplete:
 		return ErrHttpResponseIncomplete
+
 	case types.ErrorCodeHttpResponseHeaderSectionSize:
-		size := e.HttpResponseHeaderSectionSize()
-		if size.IsSome() {
+		if size := e.HttpResponseHeaderSectionSize(); !size.IsNone() {
 			return fmt.Errorf("HTTP response header section size error: limit=%d", size.Some())
 		}
 		return fmt.Errorf("HTTP response header section size error")
+
 	case types.ErrorCodeHttpResponseHeaderSize:
 		p := e.HttpResponseHeaderSize()
-		return fmt.Errorf("HTTP response header size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+		fieldName, fieldSize := "", uint32(0)
+		if !p.FieldName.IsNone() {
+			fieldName = p.FieldName.Some()
+		}
+		if !p.FieldSize.IsNone() {
+			fieldSize = p.FieldSize.Some()
+		}
+		return fmt.Errorf("HTTP response header size error: field=%q, limit=%d", fieldName, fieldSize)
+
 	case types.ErrorCodeHttpResponseBodySize:
-		size := e.HttpResponseBodySize()
-		if size.IsSome() {
+		if size := e.HttpResponseBodySize(); !size.IsNone() {
 			return fmt.Errorf("HTTP response body size error: limit=%d", size.Some())
 		}
 		return fmt.Errorf("HTTP response body size error")
+
 	case types.ErrorCodeHttpResponseTrailerSectionSize:
-		size := e.HttpResponseTrailerSectionSize()
-		if size.IsSome() {
+		if size := e.HttpResponseTrailerSectionSize(); !size.IsNone() {
 			return fmt.Errorf("HTTP response trailer section size error: limit=%d", size.Some())
 		}
 		return fmt.Errorf("HTTP response trailer section size error")
+
 	case types.ErrorCodeHttpResponseTrailerSize:
 		p := e.HttpResponseTrailerSize()
-		return fmt.Errorf("HTTP response trailer size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+		fieldName, fieldSize := "", uint32(0)
+		if !p.FieldName.IsNone() {
+			fieldName = p.FieldName.Some()
+		}
+		if !p.FieldSize.IsNone() {
+			fieldSize = p.FieldSize.Some()
+		}
+		return fmt.Errorf("HTTP response trailer size error: field=%q, limit=%d", fieldName, fieldSize)
+
 	case types.ErrorCodeHttpResponseTransferCoding:
-		coding := e.HttpResponseTransferCoding()
-		if coding.IsSome() {
+		if coding := e.HttpResponseTransferCoding(); !coding.IsNone() {
 			return fmt.Errorf("HTTP response transfer coding error: coding=%q", coding.Some())
 		}
 		return fmt.Errorf("HTTP response transfer coding error")
+
 	case types.ErrorCodeHttpResponseContentCoding:
-		coding := e.HttpResponseContentCoding()
-		if coding.IsSome() {
+		if coding := e.HttpResponseContentCoding(); !coding.IsNone() {
 			return fmt.Errorf("HTTP response content coding error: coding=%q", coding.Some())
 		}
 		return fmt.Errorf("HTTP response content coding error")
+
 	case types.ErrorCodeHttpResponseTimeout:
 		return ErrHttpResponseTimeout
+
 	case types.ErrorCodeHttpUpgradeFailed:
 		return ErrHttpUpgradeFailed
+
 	case types.ErrorCodeHttpProtocolError:
 		return ErrHttpProtocolError
+
 	case types.ErrorCodeLoopDetected:
 		return ErrLoopDetected
+
 	case types.ErrorCodeConfigurationError:
 		return ErrConfigurationError
+
 	case types.ErrorCodeInternalError:
-		msg := e.InternalError()
-		if msg.IsSome() {
+		if msg := e.InternalError(); !msg.IsNone() {
 			return fmt.Errorf("internal error: %s", msg.Some())
 		}
 		return fmt.Errorf("internal error")
+
 	default:
 		return fmt.Errorf("unknown HTTP error code: %d", e.Tag())
 	}

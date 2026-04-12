@@ -16,8 +16,8 @@ func SetHttpHandler(h http.HandlerFunc) {
 func Handle(request *httpTypes.Request) witTypes.Result[*httpTypes.Response, httpTypes.ErrorCode] {
 	req, err := newHttpRequest(request)
 	if err != nil {
-		Err := httpTypes.MakeErrorCodeInternalError(witTypes.Some(err.Error()))
-		return witTypes.Err[*httpTypes.Response](Err)
+		errCode := httpTypes.MakeErrorCodeInternalError(witTypes.Some(err.Error()))
+		return witTypes.Err[*httpTypes.Response](errCode)
 	}
 
 	if req.Body != nil {

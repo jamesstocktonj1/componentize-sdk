@@ -25,7 +25,7 @@ type responseHandler struct {
 
 	httpHeaders http.Header
 
-	headerOnce sync.Once
+	flushOnce sync.Once
 	statusCode int
 }
 
@@ -36,7 +36,7 @@ func (r *responseHandler) Header() http.Header {
 }
 
 func (r *responseHandler) Write(b []byte) (int, error) {
-	r.headerOnce.Do(r.flush)
+	r.flushOnce.Do(r.flush)
 	if r.bodyWriter == nil {
 		return 0, errors.New("response body stream is nil")
 	}
@@ -44,14 +44,14 @@ func (r *responseHandler) Write(b []byte) (int, error) {
 }
 
 func (r *responseHandler) WriteHeader(statusCode int) {
-	r.headerOnce.Do(func() {
+	r.flushOnce.Do(func() {
 		r.statusCode = statusCode
 		r.flush()
 	})
 }
 
 func (r *responseHandler) Close() error {
-	r.headerOnce.Do(r.flush)
+	r.flushOnce.Do(r.flush)
 	if r.bodyWriter != nil {
 		return r.bodyWriter.Close()
 	}
@@ -61,7 +61,8 @@ func (r *responseHandler) Close() error {
 func (r *responseHandler) flush() {
 	wasiHeaders, err := internalhttp.MapHttpHeaders(r.httpHeaders)
 	if err != nil {
-		// TODO: handle error
+		errCode := httpTypes.MakeErrorCodeInternalError(witTypes.Some(err.Error()))
+		r.responseChan <- witTypes.Err[*httpTypes.Response](errCode)
 		return
 	}
 

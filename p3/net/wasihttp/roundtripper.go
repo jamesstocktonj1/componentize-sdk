@@ -20,9 +20,8 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// We don't need the body-consumed notification; drop it to avoid blocking.
 	futureRead.Drop()
 
-	// Write the body concurrently with Send: SubtaskWait yields to the Go
-	// scheduler, which lets this goroutine write body data into the stream
-	// that the runtime opened when Send started.
+	// Write the body concurrently: the goroutine streams request body data
+	// into the WASI stream while Send blocks waiting for the response.
 	go finish()
 
 	// send request

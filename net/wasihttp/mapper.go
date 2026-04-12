@@ -1,11 +1,40 @@
 package wasihttp
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	types "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
+)
+
+// Sentinel errors for WASI HTTP error codes with no payload.
+var (
+	ErrDnsTimeout                = errors.New("DNS timeout")
+	ErrDestinationNotFound       = errors.New("destination not found")
+	ErrDestinationUnavailable    = errors.New("destination unavailable")
+	ErrDestinationIpProhibited   = errors.New("destination IP prohibited")
+	ErrDestinationIpUnroutable   = errors.New("destination IP unroutable")
+	ErrConnectionRefused         = errors.New("connection refused")
+	ErrConnectionTerminated      = errors.New("connection terminated")
+	ErrConnectionTimeout         = errors.New("connection timeout")
+	ErrConnectionReadTimeout     = errors.New("connection read timeout")
+	ErrConnectionWriteTimeout    = errors.New("connection write timeout")
+	ErrConnectionLimitReached    = errors.New("connection limit reached")
+	ErrTlsProtocolError          = errors.New("TLS protocol error")
+	ErrTlsCertificateError       = errors.New("TLS certificate error")
+	ErrHttpRequestDenied         = errors.New("HTTP request denied")
+	ErrHttpRequestLengthRequired = errors.New("HTTP request length required")
+	ErrHttpRequestMethodInvalid  = errors.New("HTTP request method invalid")
+	ErrHttpRequestUriInvalid     = errors.New("HTTP request URI invalid")
+	ErrHttpRequestUriTooLong     = errors.New("HTTP request URI too long")
+	ErrHttpResponseIncomplete    = errors.New("HTTP response incomplete")
+	ErrHttpResponseTimeout       = errors.New("HTTP response timeout")
+	ErrHttpUpgradeFailed         = errors.New("HTTP upgrade failed")
+	ErrHttpProtocolError         = errors.New("HTTP protocol error")
+	ErrLoopDetected              = errors.New("loop detected")
+	ErrConfigurationError        = errors.New("configuration error")
 )
 
 func mapMethod(m string) types.Method {
@@ -38,5 +67,132 @@ func mapRequestOptions() witTypes.Option[*types.RequestOptions] {
 }
 
 func mapErrorCode(e types.ErrorCode) error {
-	return fmt.Errorf("http error - %+v", e)
+	switch e.Tag() {
+	case types.ErrorCodeDnsTimeout:
+		return ErrDnsTimeout
+	case types.ErrorCodeDnsError:
+		p := e.DnsError()
+		return fmt.Errorf("DNS error: rcode=%q, infoCode=%d", p.Rcode.SomeOr(""), p.InfoCode.SomeOr(0))
+	case types.ErrorCodeDestinationNotFound:
+		return ErrDestinationNotFound
+	case types.ErrorCodeDestinationUnavailable:
+		return ErrDestinationUnavailable
+	case types.ErrorCodeDestinationIpProhibited:
+		return ErrDestinationIpProhibited
+	case types.ErrorCodeDestinationIpUnroutable:
+		return ErrDestinationIpUnroutable
+	case types.ErrorCodeConnectionRefused:
+		return ErrConnectionRefused
+	case types.ErrorCodeConnectionTerminated:
+		return ErrConnectionTerminated
+	case types.ErrorCodeConnectionTimeout:
+		return ErrConnectionTimeout
+	case types.ErrorCodeConnectionReadTimeout:
+		return ErrConnectionReadTimeout
+	case types.ErrorCodeConnectionWriteTimeout:
+		return ErrConnectionWriteTimeout
+	case types.ErrorCodeConnectionLimitReached:
+		return ErrConnectionLimitReached
+	case types.ErrorCodeTlsProtocolError:
+		return ErrTlsProtocolError
+	case types.ErrorCodeTlsCertificateError:
+		return ErrTlsCertificateError
+	case types.ErrorCodeTlsAlertReceived:
+		p := e.TlsAlertReceived()
+		return fmt.Errorf("TLS alert received: alertId=%d, alertMessage=%q", p.AlertId.SomeOr(0), p.AlertMessage.SomeOr(""))
+	case types.ErrorCodeHttpRequestDenied:
+		return ErrHttpRequestDenied
+	case types.ErrorCodeHttpRequestLengthRequired:
+		return ErrHttpRequestLengthRequired
+	case types.ErrorCodeHttpRequestBodySize:
+		size := e.HttpRequestBodySize()
+		if size.IsSome() {
+			return fmt.Errorf("HTTP request body size error: limit=%d", size.Some())
+		}
+		return fmt.Errorf("HTTP request body size error")
+	case types.ErrorCodeHttpRequestMethodInvalid:
+		return ErrHttpRequestMethodInvalid
+	case types.ErrorCodeHttpRequestUriInvalid:
+		return ErrHttpRequestUriInvalid
+	case types.ErrorCodeHttpRequestUriTooLong:
+		return ErrHttpRequestUriTooLong
+	case types.ErrorCodeHttpRequestHeaderSectionSize:
+		size := e.HttpRequestHeaderSectionSize()
+		if size.IsSome() {
+			return fmt.Errorf("HTTP request header section size error: limit=%d", size.Some())
+		}
+		return fmt.Errorf("HTTP request header section size error")
+	case types.ErrorCodeHttpRequestHeaderSize:
+		opt := e.HttpRequestHeaderSize()
+		if opt.IsSome() {
+			p := opt.Some()
+			return fmt.Errorf("HTTP request header size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+		}
+		return fmt.Errorf("HTTP request header size error")
+	case types.ErrorCodeHttpRequestTrailerSectionSize:
+		size := e.HttpRequestTrailerSectionSize()
+		if size.IsSome() {
+			return fmt.Errorf("HTTP request trailer section size error: limit=%d", size.Some())
+		}
+		return fmt.Errorf("HTTP request trailer section size error")
+	case types.ErrorCodeHttpRequestTrailerSize:
+		p := e.HttpRequestTrailerSize()
+		return fmt.Errorf("HTTP request trailer size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+	case types.ErrorCodeHttpResponseIncomplete:
+		return ErrHttpResponseIncomplete
+	case types.ErrorCodeHttpResponseHeaderSectionSize:
+		size := e.HttpResponseHeaderSectionSize()
+		if size.IsSome() {
+			return fmt.Errorf("HTTP response header section size error: limit=%d", size.Some())
+		}
+		return fmt.Errorf("HTTP response header section size error")
+	case types.ErrorCodeHttpResponseHeaderSize:
+		p := e.HttpResponseHeaderSize()
+		return fmt.Errorf("HTTP response header size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+	case types.ErrorCodeHttpResponseBodySize:
+		size := e.HttpResponseBodySize()
+		if size.IsSome() {
+			return fmt.Errorf("HTTP response body size error: limit=%d", size.Some())
+		}
+		return fmt.Errorf("HTTP response body size error")
+	case types.ErrorCodeHttpResponseTrailerSectionSize:
+		size := e.HttpResponseTrailerSectionSize()
+		if size.IsSome() {
+			return fmt.Errorf("HTTP response trailer section size error: limit=%d", size.Some())
+		}
+		return fmt.Errorf("HTTP response trailer section size error")
+	case types.ErrorCodeHttpResponseTrailerSize:
+		p := e.HttpResponseTrailerSize()
+		return fmt.Errorf("HTTP response trailer size error: field=%q, limit=%d", p.FieldName.SomeOr(""), p.FieldSize.SomeOr(0))
+	case types.ErrorCodeHttpResponseTransferCoding:
+		coding := e.HttpResponseTransferCoding()
+		if coding.IsSome() {
+			return fmt.Errorf("HTTP response transfer coding error: coding=%q", coding.Some())
+		}
+		return fmt.Errorf("HTTP response transfer coding error")
+	case types.ErrorCodeHttpResponseContentCoding:
+		coding := e.HttpResponseContentCoding()
+		if coding.IsSome() {
+			return fmt.Errorf("HTTP response content coding error: coding=%q", coding.Some())
+		}
+		return fmt.Errorf("HTTP response content coding error")
+	case types.ErrorCodeHttpResponseTimeout:
+		return ErrHttpResponseTimeout
+	case types.ErrorCodeHttpUpgradeFailed:
+		return ErrHttpUpgradeFailed
+	case types.ErrorCodeHttpProtocolError:
+		return ErrHttpProtocolError
+	case types.ErrorCodeLoopDetected:
+		return ErrLoopDetected
+	case types.ErrorCodeConfigurationError:
+		return ErrConfigurationError
+	case types.ErrorCodeInternalError:
+		msg := e.InternalError()
+		if msg.IsSome() {
+			return fmt.Errorf("internal error: %s", msg.Some())
+		}
+		return fmt.Errorf("internal error")
+	default:
+		return fmt.Errorf("unknown HTTP error code: %d", e.Tag())
+	}
 }

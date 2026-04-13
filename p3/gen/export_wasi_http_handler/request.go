@@ -54,5 +54,5 @@ func newRequestBodyTrailer(request *httpTypes.Request) (io.ReadCloser, http.Head
 	stream, trailersFut := httpTypes.RequestConsumeBody(request, read)
 
 	trailerMap := http.Header{}
-	return internalhttp.NewBodyReader(stream, trailersFut, fut, trailerMap), trailerMap
+	return internalhttp.NewBodyReader(stream, trailersFut, fut, trailerMap, nil), trailerMap
 }

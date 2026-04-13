@@ -13,7 +13,10 @@ var _ http.RoundTripper = (*Transport)(nil)
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// parse request
-	outRequest := parseHttpRequest(req)
+	outRequest, err := parseHttpRequest(req)
+	if err != nil {
+		return nil, err
+	}
 
 	// open outgoing request body
 	bodyRes := outRequest.Body()
@@ -30,8 +33,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	futureResp := futureRes.Ok()
 
 	// write request body and trailers
-	err := finishRequestBody(req, body)
-	if err != nil {
+	if err := finishRequestBody(req, body); err != nil {
 		return nil, err
 	}
 

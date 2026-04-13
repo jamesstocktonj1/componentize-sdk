@@ -31,5 +31,5 @@ func newResponseBodyTrailer(resp *httpTypes.Response) (io.ReadCloser, http.Heade
 	stream, trailersFut := httpTypes.ResponseConsumeBody(resp, read)
 
 	trailerMap := http.Header{}
-	return internalhttp.NewBodyReader(stream, trailersFut, fut, trailerMap), trailerMap
+	return internalhttp.NewBodyReader(stream, trailersFut, fut, trailerMap, mapErrorCode), trailerMap
 }

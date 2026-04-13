@@ -1,6 +1,7 @@
 package wasihttp
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,7 +11,7 @@ import (
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
+func parseHttpRequest(req *http.Request) (*types.OutgoingRequest, error) {
 	resp := newOutgoingRequest(req.Header)
 
 	// req.Host may be empty on client requests; fall back to req.URL.Host
@@ -19,12 +20,20 @@ func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
 	if host == "" {
 		host = req.URL.Host
 	}
-	resp.SetAuthority(witTypes.Some(host))
-	resp.SetMethod(mapMethod(req.Method))
-	resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
-	resp.SetScheme(mapUrlScheme(req.URL))
+	if r := resp.SetAuthority(witTypes.Some(host)); r.IsErr() {
+		return nil, fmt.Errorf("invalid request authority %q", host)
+	}
+	if r := resp.SetMethod(mapMethod(req.Method)); r.IsErr() {
+		return nil, fmt.Errorf("invalid request method %q", req.Method)
+	}
+	if r := resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI())); r.IsErr() {
+		return nil, fmt.Errorf("invalid request path %q", req.URL.RequestURI())
+	}
+	if r := resp.SetScheme(mapUrlScheme(req.URL)); r.IsErr() {
+		return nil, fmt.Errorf("invalid request scheme %q", req.URL.Scheme)
+	}
 
-	return resp
+	return resp, nil
 }
 
 func newOutgoingRequest(h http.Header) *types.OutgoingRequest {

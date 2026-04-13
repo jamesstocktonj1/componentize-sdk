@@ -13,7 +13,15 @@ import (
 func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
 	resp := newOutgoingRequest(req.Header)
 
-	resp.SetAuthority(witTypes.Some(req.Host))
+	// req.Host may be empty on client requests; per net/http, the transport
+	// falls back to req.URL.Host in that case. The authority is also used by
+	// the WASI host for TLS SNI, so an empty value causes TLS handshake
+	// failures (certificate/hostname mismatch) against HTTPS endpoints.
+	host := req.Host
+	if host == "" {
+		host = req.URL.Host
+	}
+	resp.SetAuthority(witTypes.Some(host))
 	resp.SetMethod(mapMethod(req.Method))
 	resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
 	resp.SetScheme(mapUrlScheme(req.URL))
@@ -24,6 +32,12 @@ func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
 func newOutgoingRequest(h http.Header) *types.OutgoingRequest {
 	outHeaders := types.MakeFields()
 	for k, v := range h {
+		// The Host header is carried by SetAuthority on the outgoing request.
+		// Forwarding it as a field can conflict with the authority used for
+		// TLS SNI and is rejected by some WASI HTTP implementations.
+		if http.CanonicalHeaderKey(k) == "Host" {
+			continue
+		}
 		for _, vs := range v {
 			outHeaders.Append(k, []uint8(vs))
 		}

@@ -17,6 +17,10 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	// The Host header is carried by SetAuthority on the outgoing request.
+	// Forwarding it as a field can conflict with the authority used for TLS
+	// SNI and is rejected by some WASI HTTP implementations.
+	f.Delete("Host") //nolint:errcheck
 
 	trailerWriter, trailerReader := httpTypes.MakeFutureResultOptionFieldsErrorCode()
 	someBody := witTypes.None[*witTypes.StreamReader[uint8]]()
@@ -35,7 +39,15 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 
 	res.SetMethod(internalhttp.MapMethodToWasi(req.Method))
 	res.SetScheme(mapUrlScheme(req.URL))
-	res.SetAuthority(witTypes.Some(req.Host))
+	// req.Host may be empty on client requests; per net/http, the transport
+	// falls back to req.URL.Host in that case. The authority is also used by
+	// the WASI host for TLS SNI, so an empty value causes TLS handshake
+	// failures (certificate/hostname mismatch) against HTTPS endpoints.
+	host := req.Host
+	if host == "" {
+		host = req.URL.Host
+	}
+	res.SetAuthority(witTypes.Some(host))
 	res.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
 
 	finish := func() {

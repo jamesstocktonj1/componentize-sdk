@@ -20,16 +20,16 @@ func parseHttpRequest(req *http.Request) (*types.OutgoingRequest, error) {
 	if host == "" {
 		host = req.URL.Host
 	}
-	if r := resp.SetAuthority(witTypes.Some(host)); r.IsErr() {
+	if resp.SetAuthority(witTypes.Some(host)).IsErr() {
 		return nil, fmt.Errorf("invalid request authority %q", host)
 	}
-	if r := resp.SetMethod(mapMethod(req.Method)); r.IsErr() {
+	if resp.SetMethod(mapMethod(req.Method)).IsErr() {
 		return nil, fmt.Errorf("invalid request method %q", req.Method)
 	}
-	if r := resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI())); r.IsErr() {
+	if resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI())).IsErr() {
 		return nil, fmt.Errorf("invalid request path %q", req.URL.RequestURI())
 	}
-	if r := resp.SetScheme(mapUrlScheme(req.URL)); r.IsErr() {
+	if resp.SetScheme(mapUrlScheme(req.URL)).IsErr() {
 		return nil, fmt.Errorf("invalid request scheme %q", req.URL.Scheme)
 	}
 

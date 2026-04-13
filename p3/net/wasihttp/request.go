@@ -34,10 +34,10 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 	opts := witTypes.None[*httpTypes.RequestOptions]()
 	res, futureRead := httpTypes.RequestNew(f, someBody, trailerReader, opts)
 
-	if r := res.SetMethod(internalhttp.MapMethodToWasi(req.Method)); r.IsErr() {
+	if res.SetMethod(internalhttp.MapMethodToWasi(req.Method)).IsErr() {
 		return nil, nil, nil, fmt.Errorf("invalid request method %q", req.Method)
 	}
-	if r := res.SetScheme(mapUrlScheme(req.URL)); r.IsErr() {
+	if res.SetScheme(mapUrlScheme(req.URL)).IsErr() {
 		return nil, nil, nil, fmt.Errorf("invalid request scheme %q", req.URL.Scheme)
 	}
 	// req.Host may be empty on client requests; fall back to req.URL.Host
@@ -46,10 +46,10 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 	if host == "" {
 		host = req.URL.Host
 	}
-	if r := res.SetAuthority(witTypes.Some(host)); r.IsErr() {
+	if res.SetAuthority(witTypes.Some(host)).IsErr() {
 		return nil, nil, nil, fmt.Errorf("invalid request authority %q", host)
 	}
-	if r := res.SetPathWithQuery(witTypes.Some(req.URL.RequestURI())); r.IsErr() {
+	if res.SetPathWithQuery(witTypes.Some(req.URL.RequestURI())).IsErr() {
 		return nil, nil, nil, fmt.Errorf("invalid request path %q", req.URL.RequestURI())
 	}
 

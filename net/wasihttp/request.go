@@ -13,7 +13,11 @@ import (
 func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
 	resp := newOutgoingRequest(req.Header)
 
-	resp.SetAuthority(witTypes.Some(req.Host))
+	host := req.Host
+	if host == "" {
+		host = req.URL.Host
+	}
+	resp.SetAuthority(witTypes.Some(host))
 	resp.SetMethod(mapMethod(req.Method))
 	resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
 	resp.SetScheme(mapUrlScheme(req.URL))

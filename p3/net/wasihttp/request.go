@@ -33,9 +33,14 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 	opts := witTypes.None[*httpTypes.RequestOptions]()
 	res, futureRead := httpTypes.RequestNew(f, someBody, trailerReader, opts)
 
+	host := req.Host
+	if host == "" {
+		host = req.URL.Host
+	}
+
 	res.SetMethod(internalhttp.MapMethodToWasi(req.Method))
 	res.SetScheme(mapUrlScheme(req.URL))
-	res.SetAuthority(witTypes.Some(req.Host))
+	res.SetAuthority(witTypes.Some(host))
 	res.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
 
 	finish := func() {

@@ -13,10 +13,8 @@ import (
 func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
 	resp := newOutgoingRequest(req.Header)
 
-	// req.Host may be empty on client requests; per net/http, the transport
-	// falls back to req.URL.Host in that case. The authority is also used by
-	// the WASI host for TLS SNI, so an empty value causes TLS handshake
-	// failures (certificate/hostname mismatch) against HTTPS endpoints.
+	// req.Host may be empty on client requests; fall back to req.URL.Host
+	// so the WASI host has a valid authority for TLS SNI.
 	host := req.Host
 	if host == "" {
 		host = req.URL.Host

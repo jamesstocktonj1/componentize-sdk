@@ -1,7 +1,6 @@
 package wasihttp
 
 import (
-	"errors"
 	"net/http"
 
 	handler "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_outgoing_handler"
@@ -19,7 +18,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// open outgoing request body
 	bodyRes := outRequest.Body()
 	if bodyRes.IsErr() {
-		return nil, errors.New("failed to fetch response body")
+		return nil, ErrOutgoingBodyTaken
 	}
 	body := bodyRes.Ok()
 

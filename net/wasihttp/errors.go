@@ -53,3 +53,18 @@ var (
 	// ErrConfigurationError is returned when the HTTP handler or proxy is misconfigured.
 	ErrConfigurationError = errors.New("configuration error")
 )
+
+// Sentinel errors for WASI resource-state conditions. These indicate a
+// programming bug in the SDK (a handle was consumed twice) rather than a
+// network or TLS failure.
+var (
+	// ErrOutgoingBodyTaken is returned when the outgoing request body has
+	// already been taken.
+	ErrOutgoingBodyTaken = errors.New("outgoing request body already taken")
+	// ErrFutureResponseConsumed is returned when the future incoming response
+	// has already been consumed.
+	ErrFutureResponseConsumed = errors.New("future incoming response already consumed")
+	// ErrIncomingResponseConsumed is returned when the incoming response body
+	// has already been consumed.
+	ErrIncomingResponseConsumed = errors.New("incoming response already consumed")
+)

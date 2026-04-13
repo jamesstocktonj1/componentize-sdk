@@ -13,12 +13,14 @@ import (
 func parseFutureResponse(ctx context.Context, resp *types.FutureIncomingResponse) (*http.Response, error) {
 	optResponse := resp.Get()
 	if optResponse.IsNone() {
-		return nil, errors.New("failed to fetch future response - response is empty")
+		return nil, errors.New("future incoming response not ready")
 	}
 
+	// The outer result signals whether the future has already been consumed;
+	// only the inner result carries the wasi:http error-code.
 	innerResult := optResponse.Some()
 	if innerResult.IsErr() {
-		return nil, errors.New("failed to unwrap future response")
+		return nil, ErrFutureResponseConsumed
 	}
 	innerResponse := innerResult.Ok()
 
@@ -50,7 +52,7 @@ func parseIncomingResponse(ctx context.Context, resp *types.IncomingResponse) (*
 func newResponseBody(ctx context.Context, resp *types.IncomingResponse) (io.ReadCloser, http.Header, error) {
 	bodyRes := resp.Consume()
 	if bodyRes.IsErr() {
-		return nil, nil, errors.New("failed to consume incoming response")
+		return nil, nil, ErrIncomingResponseConsumed
 	}
 	rawBody, trailer, err := httptypes.NewIncomingBodyReader(ctx, bodyRes.Ok())
 	if err != nil {

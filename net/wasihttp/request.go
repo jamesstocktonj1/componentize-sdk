@@ -1,6 +1,7 @@
 package wasihttp
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,15 +11,29 @@ import (
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
+func parseHttpRequest(req *http.Request) (*types.OutgoingRequest, error) {
 	resp := newOutgoingRequest(req.Header)
 
-	resp.SetAuthority(witTypes.Some(req.Host))
-	resp.SetMethod(mapMethod(req.Method))
-	resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
-	resp.SetScheme(mapUrlScheme(req.URL))
+	// req.Host may be empty on client requests; fall back to req.URL.Host
+	// so the WASI host has a valid authority for TLS SNI.
+	host := req.Host
+	if host == "" {
+		host = req.URL.Host
+	}
+	if resp.SetAuthority(witTypes.Some(host)).IsErr() {
+		return nil, fmt.Errorf("invalid request authority %q", host)
+	}
+	if resp.SetMethod(mapMethod(req.Method)).IsErr() {
+		return nil, fmt.Errorf("invalid request method %q", req.Method)
+	}
+	if resp.SetPathWithQuery(witTypes.Some(req.URL.RequestURI())).IsErr() {
+		return nil, fmt.Errorf("invalid request path %q", req.URL.RequestURI())
+	}
+	if resp.SetScheme(mapUrlScheme(req.URL)).IsErr() {
+		return nil, fmt.Errorf("invalid request scheme %q", req.URL.Scheme)
+	}
 
-	return resp
+	return resp, nil
 }
 
 func newOutgoingRequest(h http.Header) *types.OutgoingRequest {

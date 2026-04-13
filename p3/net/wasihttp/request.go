@@ -1,6 +1,7 @@
 package wasihttp
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
@@ -33,10 +34,24 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 	opts := witTypes.None[*httpTypes.RequestOptions]()
 	res, futureRead := httpTypes.RequestNew(f, someBody, trailerReader, opts)
 
-	res.SetMethod(internalhttp.MapMethodToWasi(req.Method))
-	res.SetScheme(mapUrlScheme(req.URL))
-	res.SetAuthority(witTypes.Some(req.Host))
-	res.SetPathWithQuery(witTypes.Some(req.URL.RequestURI()))
+	if res.SetMethod(internalhttp.MapMethodToWasi(req.Method)).IsErr() {
+		return nil, nil, nil, fmt.Errorf("invalid request method %q", req.Method)
+	}
+	if res.SetScheme(mapUrlScheme(req.URL)).IsErr() {
+		return nil, nil, nil, fmt.Errorf("invalid request scheme %q", req.URL.Scheme)
+	}
+	// req.Host may be empty on client requests; fall back to req.URL.Host
+	// so the WASI host has a valid authority for TLS SNI.
+	host := req.Host
+	if host == "" {
+		host = req.URL.Host
+	}
+	if res.SetAuthority(witTypes.Some(host)).IsErr() {
+		return nil, nil, nil, fmt.Errorf("invalid request authority %q", host)
+	}
+	if res.SetPathWithQuery(witTypes.Some(req.URL.RequestURI())).IsErr() {
+		return nil, nil, nil, fmt.Errorf("invalid request path %q", req.URL.RequestURI())
+	}
 
 	finish := func() {
 		if req.Body != nil {

@@ -17,10 +17,6 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	// The Host header is carried by SetAuthority on the outgoing request.
-	// Forwarding it as a field can conflict with the authority used for TLS
-	// SNI and is rejected by some WASI HTTP implementations.
-	f.Delete("Host") //nolint:errcheck
 
 	trailerWriter, trailerReader := httpTypes.MakeFutureResultOptionFieldsErrorCode()
 	someBody := witTypes.None[*witTypes.StreamReader[uint8]]()

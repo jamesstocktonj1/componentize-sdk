@@ -32,12 +32,6 @@ func parseHttpRequest(req *http.Request) *types.OutgoingRequest {
 func newOutgoingRequest(h http.Header) *types.OutgoingRequest {
 	outHeaders := types.MakeFields()
 	for k, v := range h {
-		// The Host header is carried by SetAuthority on the outgoing request.
-		// Forwarding it as a field can conflict with the authority used for
-		// TLS SNI and is rejected by some WASI HTTP implementations.
-		if http.CanonicalHeaderKey(k) == "Host" {
-			continue
-		}
 		for _, vs := range v {
 			outHeaders.Append(k, []uint8(vs))
 		}

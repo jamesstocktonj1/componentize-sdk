@@ -65,3 +65,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.ref_name }}" --generate-notes
+      - name: Tag p3 submodule
+        run: |
+          version="${{ github.ref_name }}"
+          p3_tag="p3/${version}"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git tag "${p3_tag}"
+          git push origin "${p3_tag}"

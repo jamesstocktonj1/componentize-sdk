@@ -10,3 +10,12 @@ registry = "wasi.dev"
 requirement = "=0.3.0-rc-2026-03-15"
 version = "0.3.0-rc-2026-03-15"
 digest = "sha256:ed996ba07af24b216deb3d59bf56362f443d8bcfd1b07d1bfd80c49cb37df399"
+
+[[packages]]
+name = "wasi:sockets"
+registry = "wasi.dev"
+
+[[packages.versions]]
+requirement = "=0.3.0-rc-2026-03-15"
+version = "0.3.0-rc-2026-03-15"
+digest = "sha256:9944ecbee9950744290bb1ccb134aa2fc9821307fd6016cb01e6d617bc382cfe"

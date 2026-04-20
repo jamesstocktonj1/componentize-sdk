@@ -2,6 +2,7 @@
 //
 // This code was generated from the following packages:
 //     wasi:clocks@0.3.0-rc-2026-03-15
+//     wasi:sockets@0.3.0-rc-2026-03-15
 //     wasi:cli@0.3.0-rc-2026-03-15
 //     wasi:random@0.3.0-rc-2026-03-15
 //     wasi:http@0.3.0-rc-2026-03-15

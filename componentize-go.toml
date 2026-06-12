@@ -1,2 +1,6 @@
 wit_paths = ["./wit"]
-worlds = ["sdk"]
+worlds = [
+    "sdk",
+    "http",
+    "cli"
+]

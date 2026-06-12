@@ -1,7 +1,7 @@
 .PHONY: build
 build:
 	@echo "Building component"
-	@componentize-go --world sdk --world cli build --output build/socket-server.wasm
+	@componentize-go build --output build/socket-server.wasm
 
 .PHONY: clean
 clean:

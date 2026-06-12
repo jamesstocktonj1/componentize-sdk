@@ -15,10 +15,40 @@
 package wit_exports
 
 import (
+	"github.com/jamesstocktonj1/componentize-sdk/gen/export_wasi_cli_run"
+	"github.com/jamesstocktonj1/componentize-sdk/gen/export_wasi_http_incoming_handler"
+	"github.com/jamesstocktonj1/componentize-sdk/gen/wasi_http_types"
 	witRuntime "go.bytecodealliance.org/pkg/wit/runtime"
+	witTypes "go.bytecodealliance.org/pkg/wit/types"
 	"runtime"
 )
 
 var staticPinner = runtime.Pinner{}
 var exportReturnArea = uintptr(witRuntime.Allocate(&staticPinner, 0, 1))
 var syncExportPinner = runtime.Pinner{}
+
+//go:wasmexport wasi:http/incoming-handler@0.2.6#handle
+func wasm_export_wasi_http_incoming_handler_handle(arg0 int32, arg1 int32) {
+
+	export_wasi_http_incoming_handler.Handle(wasi_http_types.IncomingRequestFromOwnHandle(int32(uintptr(arg0))), wasi_http_types.ResponseOutparamFromOwnHandle(int32(uintptr(arg1))))
+
+}
+
+//go:wasmexport wasi:cli/run@0.2.6#run
+func wasm_export_wasi_cli_run_run() int32 {
+
+	result := export_wasi_cli_run.Run()
+	var option int32
+	switch result.Tag() {
+	case witTypes.ResultOk:
+
+		option = int32(0)
+	case witTypes.ResultErr:
+
+		option = int32(1)
+	default:
+		panic("unreachable")
+	}
+	return option
+
+}

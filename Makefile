@@ -11,7 +11,7 @@ fetch:
 .PHONY: generate
 generate: fetch
 	@echo "Generating sdk bindings"
-	@componentize-go --world sdk bindings \
+	@componentize-go --world all bindings \
 		--pkg-name github.com/jamesstocktonj1/componentize-sdk/gen \
 		--output gen \
 		--format

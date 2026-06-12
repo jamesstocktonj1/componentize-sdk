@@ -18,3 +18,9 @@ world http {
 world cli {
   export wasi:cli/run@0.2.6;
 }
+
+world all {
+  include sdk;
+  include http;
+  include cli;
+}

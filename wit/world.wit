@@ -5,8 +5,22 @@ world sdk {
   import wasi:blobstore/blobstore@0.2.0-draft;
 
   /// net/wasihttp
-  include wasi:http/proxy@0.2.0;
+  import wasi:http/outgoing-handler@0.2.6;
 
   /// net/sockets
-  include wasi:sockets/imports@0.2.0;
+  include wasi:sockets/imports@0.2.6;
+}
+
+world http {
+  export wasi:http/incoming-handler@0.2.6;
+}
+
+world cli {
+  export wasi:cli/run@0.2.6;
+}
+
+world all {
+  include sdk;
+  include http;
+  include cli;
 }

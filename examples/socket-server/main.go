@@ -4,13 +4,12 @@ import (
 	"io"
 	"net"
 
-	export_wasi_cli_run "github.com/jamesstocktonj1/componentize-sdk/examples/socket-server/gen/export_wasi_cli_0_2_6_run"
-	_ "github.com/jamesstocktonj1/componentize-sdk/examples/socket-server/gen/wit_exports"
+	"github.com/jamesstocktonj1/componentize-sdk/cli"
 	"github.com/jamesstocktonj1/componentize-sdk/net/socket"
 )
 
 func init() {
-	export_wasi_cli_run.SetRunner(run)
+	cli.SetRun(run)
 }
 
 func run() {

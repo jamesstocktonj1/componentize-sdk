@@ -58,6 +58,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install wash
+        uses: wasmCloud/setup-wash-action@main
+        with:
+          wash-version: v2.5.1
       - name: Install componentize-go
         uses: bytecodealliance/componentize-go/.github/actions/setup-componentize-go@main
         with:
@@ -92,7 +96,7 @@ jobs:
       - name: Install wash
         uses: wasmCloud/setup-wash-action@main
         with:
-          wash-version: wash-v2.0.0-rc.8
+          wash-version: v2.5.1
       - name: Install componentize-go
         uses: bytecodealliance/componentize-go/.github/actions/setup-componentize-go@main
         with:

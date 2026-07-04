@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	wasiStreams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_0_streams"
+	wasiStreams "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_io_0_2_6_streams"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	"github.com/jamesstocktonj1/componentize-sdk/internal/stream"

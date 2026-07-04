@@ -3,44 +3,66 @@ name: Release Workflow
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version'
+      bump:
+        description: 'Version bump type'
         required: true
-        type: string
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   packages: write
 
 jobs:
   tag:
-    name: Tag Root Module
+    name: Tag Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Create root tag
+        with:
+          fetch-depth: 0
+      - name: Determine next version
+        id: bump
         run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git tag "${{ inputs.version }}"
-          git push origin "${{ inputs.version }}"
+          git fetch --tags --force
+          latest=$(git tag -l | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' | sort -V | tail -n1)
+          if [ -z "$latest" ]; then
+            latest="0.0.0"
+          fi
 
-  tag-p3:
-    name: Tag p3 Submodule
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Create p3 tag
+          IFS='.' read -r major minor patch <<< "$latest"
+          case "${{ inputs.bump }}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+          version="${major}.${minor}.${patch}"
+
+          echo "Bumping ${latest} -> ${version} (${{ inputs.bump }})"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - name: Create tags
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git tag "p3/${{ inputs.version }}"
-          git push origin "p3/${{ inputs.version }}"
+          git tag "${{ steps.bump.outputs.version }}"
+          git tag "p3/${{ steps.bump.outputs.version }}"
+          git push origin "${{ steps.bump.outputs.version }}" "p3/${{ steps.bump.outputs.version }}"
 
   build-examples:
     name: Build Root Example - ${{ matrix.function }}
@@ -78,12 +100,12 @@ jobs:
       - name: Publish artifact
         working-directory: examples/${{ matrix.function }}
         run: |
-          wash oci push ghcr.io/${{ github.repository }}/${{ matrix.function }}:${{ inputs.version }} build/${{ matrix.function }}.wasm
+          wash oci push ghcr.io/${{ github.repository }}/${{ matrix.function }}:${{ needs.tag.outputs.version }} build/${{ matrix.function }}.wasm
 
   build-p3-examples:
     name: Build p3 Example - ${{ matrix.function }}
     runs-on: ubuntu-latest
-    needs: tag-p3
+    needs: tag
     strategy:
       fail-fast: false
       matrix:
@@ -113,12 +135,12 @@ jobs:
       - name: Publish artifact
         working-directory: examples/${{ matrix.function }}
         run: |
-          wash oci push ghcr.io/${{ github.repository }}/${{ matrix.function }}:${{ inputs.version }} build/${{ matrix.function }}.wasm
+          wash oci push ghcr.io/${{ github.repository }}/${{ matrix.function }}:${{ needs.tag.outputs.version }} build/${{ matrix.function }}.wasm
 
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-examples, build-p3-examples]
+    needs: [tag, build-examples, build-p3-examples]
     permissions:
       contents: write
     steps:
@@ -128,4 +150,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ inputs.version }}" --generate-notes
+          gh release create "${{ needs.tag.outputs.version }}" --generate-notes

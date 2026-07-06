@@ -2,14 +2,17 @@
 //
 // This code was generated from the following packages:
 //     wasi:clocks@0.3.0
-//     wasi:cli@0.3.0
+//     wasi:filesystem@0.3.0
+//     wasi:sockets@0.3.0
 //     wasi:random@0.3.0
+//     wasi:cli@0.3.0
 //     wasi:http@0.3.0
 //     jamesstocktonj1:componentize-sdk-p3
 
 package wit_exports
 
 import (
+	"github.com/jamesstocktonj1/componentize-sdk/p3/gen/export_wasi_cli_run"
 	"github.com/jamesstocktonj1/componentize-sdk/p3/gen/export_wasi_http_handler"
 	"github.com/jamesstocktonj1/componentize-sdk/p3/gen/wasi_http_types"
 	witAsync "go.bytecodealliance.org/pkg/wit/async"
@@ -22,6 +25,35 @@ import (
 var staticPinner = runtime.Pinner{}
 var exportReturnArea = uintptr(witRuntime.Allocate(&staticPinner, 0, 1))
 var syncExportPinner = runtime.Pinner{}
+
+//go:wasmexport [async-lift]wasi:cli/run@0.3.0#run
+func wasm_export_wasi_cli_run_run() int32 {
+	return int32(witAsync.Run(func() {
+
+		result := export_wasi_cli_run.Run()
+		var option int32
+		switch result.Tag() {
+		case witTypes.ResultOk:
+
+			option = int32(0)
+		case witTypes.ResultErr:
+
+			option = int32(1)
+		default:
+			panic("unreachable")
+		}
+		wasm_export_task_return_wasi_cli_run_run(option)
+
+	}))
+}
+
+//go:wasmexport [callback][async-lift]wasi:cli/run@0.3.0#run
+func wasm_export_callback_wasi_cli_run_run(event0 uint32, event1 uint32, event2 uint32) uint32 {
+	return witAsync.Callback(event0, event1, event2)
+}
+
+//go:wasmimport [export]wasi:cli/run@0.3.0 [task-return]run
+func wasm_export_task_return_wasi_cli_run_run(arg0 int32)
 
 //go:wasmexport [async-lift]wasi:http/handler@0.3.0#handle
 func wasm_export_wasi_http_handler_handle(arg0 int32) int32 {

@@ -2,8 +2,10 @@
 //
 // This code was generated from the following packages:
 //     wasi:clocks@0.3.0
-//     wasi:cli@0.3.0
+//     wasi:filesystem@0.3.0
+//     wasi:sockets@0.3.0
 //     wasi:random@0.3.0
+//     wasi:cli@0.3.0
 //     wasi:http@0.3.0
 //     jamesstocktonj1:componentize-sdk-p3
 

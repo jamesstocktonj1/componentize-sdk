@@ -2,8 +2,10 @@
 //
 // This code was generated from the following packages:
 //     wasi:clocks@0.3.0
-//     wasi:cli@0.3.0
+//     wasi:filesystem@0.3.0
+//     wasi:sockets@0.3.0
 //     wasi:random@0.3.0
+//     wasi:cli@0.3.0
 //     wasi:http@0.3.0
 //     jamesstocktonj1:componentize-sdk-p3
 
@@ -12,9 +14,12 @@ package wasi_cli_types
 import ()
 
 const (
-	ErrorCodeIo                  uint8 = 0
+	// Input/output error
+	ErrorCodeIo uint8 = 0
+	// Invalid or incomplete multibyte or wide character
 	ErrorCodeIllegalByteSequence uint8 = 1
-	ErrorCodePipe                uint8 = 2
+	// Broken pipe
+	ErrorCodePipe uint8 = 2
 )
 
 type ErrorCode = uint8

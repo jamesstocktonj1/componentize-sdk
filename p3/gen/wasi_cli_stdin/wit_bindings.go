@@ -2,22 +2,60 @@
 //
 // This code was generated from the following packages:
 //     wasi:clocks@0.3.0
+//     wasi:filesystem@0.3.0
 //     wasi:sockets@0.3.0
-//     wasi:cli@0.3.0
 //     wasi:random@0.3.0
+//     wasi:cli@0.3.0
 //     wasi:http@0.3.0
 //     jamesstocktonj1:componentize-sdk-p3
 
 package wasi_cli_stdin
 
 import (
-	"github.com/jamesstocktonj1/componentize-sdk/p3/gen/wasi_cli_stdout"
 	"github.com/jamesstocktonj1/componentize-sdk/p3/gen/wasi_cli_types"
 	witRuntime "go.bytecodealliance.org/pkg/wit/runtime"
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 	"runtime"
 	"unsafe"
 )
+
+//go:wasmimport wasi:cli/stdin@0.3.0 [stream-new-0]read-via-stream
+func wasm_stream_new_u8() uint64
+
+//go:wasmimport wasi:cli/stdin@0.3.0 [async-lower][stream-read-0]read-via-stream
+func wasm_stream_read_u8(handle int32, item unsafe.Pointer, count uint32) uint32
+
+//go:wasmimport wasi:cli/stdin@0.3.0 [async-lower][stream-write-0]read-via-stream
+func wasm_stream_write_u8(handle int32, item unsafe.Pointer, count uint32) uint32
+
+//go:wasmimport wasi:cli/stdin@0.3.0 [stream-drop-readable-0]read-via-stream
+func wasm_stream_drop_readable_u8(handle int32)
+
+//go:wasmimport wasi:cli/stdin@0.3.0 [stream-drop-writable-0]read-via-stream
+func wasm_stream_drop_writable_u8(handle int32)
+
+var wasm_stream_vtable_u8 = witTypes.StreamVtable[uint8]{
+	1,
+	1,
+	wasm_stream_read_u8,
+	wasm_stream_write_u8,
+	nil,
+	nil,
+	wasm_stream_drop_readable_u8,
+	wasm_stream_drop_writable_u8,
+	nil,
+	nil,
+}
+
+func MakeStreamU8() (*witTypes.StreamWriter[uint8], *witTypes.StreamReader[uint8]) {
+	pair := wasm_stream_new_u8()
+	return witTypes.MakeStreamWriter[uint8](&wasm_stream_vtable_u8, int32(pair>>32)),
+		witTypes.MakeStreamReader[uint8](&wasm_stream_vtable_u8, int32(pair&0xFFFFFFFF))
+}
+
+func LiftStreamU8(handle int32) *witTypes.StreamReader[uint8] {
+	return witTypes.MakeStreamReader[uint8](&wasm_stream_vtable_u8, handle)
+}
 
 //go:wasmimport wasi:cli/stdin@0.3.0 [future-new-1]read-via-stream
 func wasm_future_new_result_unit_wasi_cli_types_error_code() uint64
@@ -107,7 +145,7 @@ func ReadViaStream() (*witTypes.StreamReader[uint8], *witTypes.FutureReader[witT
 
 	returnArea := uintptr(witRuntime.Allocate(pinner, 8, 4))
 	wasm_import_read_via_stream(returnArea)
-	result := witTypes.Tuple2[*witTypes.StreamReader[uint8], *witTypes.FutureReader[witTypes.Result[witTypes.Unit, wasi_cli_types.ErrorCode]]]{wasi_cli_stdout.LiftStreamU8(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 0))), LiftFutureResultUnitWasiCliTypesErrorCode(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4)))}
+	result := witTypes.Tuple2[*witTypes.StreamReader[uint8], *witTypes.FutureReader[witTypes.Result[witTypes.Unit, wasi_cli_types.ErrorCode]]]{LiftStreamU8(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 0))), LiftFutureResultUnitWasiCliTypesErrorCode(*(*int32)(unsafe.Add(unsafe.Pointer(returnArea), 4)))}
 	tuple := result
 	return tuple.F0, tuple.F1
 

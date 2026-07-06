@@ -2,9 +2,10 @@
 //
 // This code was generated from the following packages:
 //     wasi:clocks@0.3.0
+//     wasi:filesystem@0.3.0
 //     wasi:sockets@0.3.0
-//     wasi:cli@0.3.0
 //     wasi:random@0.3.0
+//     wasi:cli@0.3.0
 //     wasi:http@0.3.0
 //     jamesstocktonj1:componentize-sdk-p3
 
@@ -16,44 +17,6 @@ import (
 	"runtime"
 	"unsafe"
 )
-
-//go:wasmimport wasi:cli/stdout@0.3.0 [stream-new-0]write-via-stream
-func wasm_stream_new_u8() uint64
-
-//go:wasmimport wasi:cli/stdout@0.3.0 [async-lower][stream-read-0]write-via-stream
-func wasm_stream_read_u8(handle int32, item unsafe.Pointer, count uint32) uint32
-
-//go:wasmimport wasi:cli/stdout@0.3.0 [async-lower][stream-write-0]write-via-stream
-func wasm_stream_write_u8(handle int32, item unsafe.Pointer, count uint32) uint32
-
-//go:wasmimport wasi:cli/stdout@0.3.0 [stream-drop-readable-0]write-via-stream
-func wasm_stream_drop_readable_u8(handle int32)
-
-//go:wasmimport wasi:cli/stdout@0.3.0 [stream-drop-writable-0]write-via-stream
-func wasm_stream_drop_writable_u8(handle int32)
-
-var wasm_stream_vtable_u8 = witTypes.StreamVtable[uint8]{
-	1,
-	1,
-	wasm_stream_read_u8,
-	wasm_stream_write_u8,
-	nil,
-	nil,
-	wasm_stream_drop_readable_u8,
-	wasm_stream_drop_writable_u8,
-	nil,
-	nil,
-}
-
-func MakeStreamU8() (*witTypes.StreamWriter[uint8], *witTypes.StreamReader[uint8]) {
-	pair := wasm_stream_new_u8()
-	return witTypes.MakeStreamWriter[uint8](&wasm_stream_vtable_u8, int32(pair>>32)),
-		witTypes.MakeStreamReader[uint8](&wasm_stream_vtable_u8, int32(pair&0xFFFFFFFF))
-}
-
-func LiftStreamU8(handle int32) *witTypes.StreamReader[uint8] {
-	return witTypes.MakeStreamReader[uint8](&wasm_stream_vtable_u8, handle)
-}
 
 //go:wasmimport wasi:cli/stdout@0.3.0 [future-new-1]write-via-stream
 func wasm_future_new_result_unit_wasi_cli_types_error_code() uint64

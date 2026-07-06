@@ -93,6 +93,8 @@ jobs:
         function:
           - hello-p3
           - client-p3
+          - socket-client-p3
+          - socket-server-p3
     steps:
       - name: Checkout
         uses: actions/checkout@v4

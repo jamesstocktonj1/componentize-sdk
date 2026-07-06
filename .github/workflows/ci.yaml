@@ -38,6 +38,8 @@ jobs:
           - examples/blobby
           - examples/socket-client
           - examples/socket-server
+          - examples/socket-client-p3
+          - examples/socket-server-p3
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -1,17 +1,19 @@
 package socket
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
 
-	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 	instanceNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_instance_network"
 	wasiNetwork "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_network"
 	wasiTcp "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp"
 	wasiTcpCreate "github.com/jamesstocktonj1/componentize-sdk/gen/wasi_sockets_tcp_create_socket"
+	"github.com/jamesstocktonj1/componentize-sdk/internal/pollable"
 )
 
+// Dial connects to the address on the named network.
 func Dial(network string, address string) (net.Conn, error) {
 	n, remoteAddr, err := resolveNetworkAddress(network, address, "")
 	if err != nil {
@@ -45,6 +47,13 @@ func Dial(network string, address string) (net.Conn, error) {
 	}
 }
 
+// DialContext connects to the address on the named network using
+// the provided context.
+func DialContext(_ctx context.Context, network string, address string) (net.Conn, error) {
+	return Dial(network, address)
+}
+
+// Listen announces on the local network address.
 func Listen(network string, address string) (net.Listener, error) {
 	// Default to IPv4 wildcard; WASI does not support dual-stack sockets.
 	n, localAddr, err := resolveNetworkAddress(network, address, "0.0.0.0")

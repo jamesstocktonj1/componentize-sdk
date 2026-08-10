@@ -6,10 +6,10 @@
 version: 2
 updates:
 - package-ecosystem: "gomod"
-  directory: "/"
-  schedule:
-    interval: "weekly"
-- package-ecosystem: "gomod"
-  directory: "p3/"
+  directories:
+    - "/"
+    - "/p3"
+    - "/p3/exports/*"
+    - "/examples/*"
   schedule:
     interval: "weekly"

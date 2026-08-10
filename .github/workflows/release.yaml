@@ -39,6 +39,13 @@ jobs:
       - name: Pin p3 version in exports modules
         run: |
           go mod edit -require=github.com/${{ github.repository }}/p3@${{ steps.compute.outputs.tag }} p3/exports/http/go.mod
+      - name: Tidy modules depending on p3/exports/http
+        run: |
+          for mod in $(grep -rl "${{ github.repository }}/p3/exports/http" --include=go.mod .); do
+            dir=$(dirname "$mod")
+            [ "$dir" = "./p3/exports/http" ] && continue
+            (cd "$dir" && go mod tidy)
+          done
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v8

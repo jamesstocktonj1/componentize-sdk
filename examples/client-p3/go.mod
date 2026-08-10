@@ -4,7 +4,7 @@ go 1.25.5
 
 replace github.com/jamesstocktonj1/componentize-sdk/p3 => ../../p3
 
-require github.com/jamesstocktonj1/componentize-sdk/p3 v0.0.0-00010101000000-000000000000
+require github.com/jamesstocktonj1/componentize-sdk/p3 v0.1.12
 
 require go.bytecodealliance.org/pkg v0.2.3 // indirect
 

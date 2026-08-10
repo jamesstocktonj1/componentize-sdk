@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	httpexport "github.com/jamesstocktonj1/componentize-sdk/p3/exports/http"
 	"github.com/jamesstocktonj1/componentize-sdk/p3/net/wasihttp"
 )
 
@@ -16,7 +17,7 @@ func init() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/hello", handler)
 	mux.HandleFunc("/echo", echoHandler)
-	wasihttp.Handle(mux)
+	httpexport.Handle(mux)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {

@@ -39,10 +39,18 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Pin p3 version in exports modules
+        run: |
+          go mod edit -require=github.com/${{ github.repository }}/p3@${{ steps.compute.outputs.tag }} p3/exports/http/go.mod
+          git add p3/exports/http/go.mod
+          git commit -m "chore: release ${{ steps.compute.outputs.tag }}"
+          git push origin HEAD:${{ github.ref_name }}
       - name: Create tags
         run: |
           git tag "${{ steps.compute.outputs.tag }}"
           git tag "p3/${{ steps.compute.outputs.tag }}"
+          git tag "p3/exports/cli/${{ steps.compute.outputs.tag }}"
+          git tag "p3/exports/http/${{ steps.compute.outputs.tag }}"
           git push origin --tags
 
   build-examples:

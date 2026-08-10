@@ -5,6 +5,7 @@ import (
 	"net"
 
 	sockets "github.com/jamesstocktonj1/componentize-sdk/p3/gen/wasi_sockets_types"
+	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
 func Dial(network string, address string) (net.Conn, error) {
@@ -13,7 +14,7 @@ func Dial(network string, address string) (net.Conn, error) {
 		return nil, err
 	}
 
-	sock, err := createTcpSocket(addr)
+	sock, err := createSocket(network, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +24,14 @@ func Dial(network string, address string) (net.Conn, error) {
 		return nil, fmt.Errorf("connect: %w", mapErrorCode(connectRes.Err()))
 	}
 
-	return newConn(sock), nil
+	switch s := sock.(type) {
+	case *sockets.TcpSocket:
+		return newTcpConn(s), nil
+	case *sockets.UdpSocket:
+		return newUdpConn(s), nil
+	default:
+		return nil, fmt.Errorf("unsupported network %q", network)
+	}
 }
 
 func Listen(network string, address string) (net.Listener, error) {
@@ -32,7 +40,7 @@ func Listen(network string, address string) (net.Listener, error) {
 		return nil, err
 	}
 
-	sock, err := createTcpSocket(addr)
+	sock, err := createTcpSocket(mapAddressFamily(addr))
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +68,35 @@ func Listen(network string, address string) (net.Listener, error) {
 	}, nil
 }
 
-func createTcpSocket(addr sockets.IpAddress) (*sockets.TcpSocket, error) {
-	res := sockets.TcpSocketCreate(mapAddressFamily(addr))
+// wasiSocket is the subset of TcpSocket and UdpSocket shared by Dial,
+// letting it connect either socket type without branching on network.
+type wasiSocket interface {
+	Connect(remoteAddress sockets.IpSocketAddress) witTypes.Result[witTypes.Unit, sockets.ErrorCode]
+}
+
+var (
+	_ wasiSocket = (*sockets.TcpSocket)(nil)
+	_ wasiSocket = (*sockets.UdpSocket)(nil)
+)
+
+func createSocket(network string, addr sockets.IpAddress) (wasiSocket, error) {
+	addrFamily := mapAddressFamily(addr)
+	switch network {
+	case "tcp":
+		return createTcpSocket(addrFamily)
+	case "udp":
+		return createUdpSocket(addrFamily)
+	default:
+		return nil, fmt.Errorf("unknown network type - %s", network)
+	}
+}
+
+// newWasiSocket unwraps the create-result pattern shared by every WASI
+// socket resource constructor (tcp-socket.create, udp-socket.create, ...).
+func newWasiSocket[T any](res witTypes.Result[T, sockets.ErrorCode]) (T, error) {
 	if res.IsErr() {
-		return nil, fmt.Errorf("create: %w", mapErrorCode(res.Err()))
+		var zero T
+		return zero, fmt.Errorf("create: %w", mapErrorCode(res.Err()))
 	}
 	return res.Ok(), nil
 }

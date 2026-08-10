@@ -24,7 +24,7 @@ func (l *listener) Accept() (net.Conn, error) {
 	if n == 0 {
 		return nil, net.ErrClosed
 	}
-	return newConn(buf[0]), nil
+	return newTcpConn(buf[0]), nil
 }
 
 func (l *listener) Close() error {

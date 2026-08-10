@@ -74,6 +74,27 @@ func mapNetAddr(addr sockets.IpSocketAddress) net.Addr {
 	return nil
 }
 
+func mapUDPAddr(addr sockets.IpSocketAddress) net.Addr {
+	switch addr.Tag() {
+	case sockets.IpSocketAddressIpv4:
+		v4 := addr.Ipv4()
+		ip := net.IPv4(v4.Address.F0, v4.Address.F1, v4.Address.F2, v4.Address.F3)
+		return &net.UDPAddr{IP: ip, Port: int(v4.Port)}
+	case sockets.IpSocketAddressIpv6:
+		v6 := addr.Ipv6()
+		ip := make(net.IP, 16)
+		for i, seg := range [8]uint16{
+			v6.Address.F0, v6.Address.F1, v6.Address.F2, v6.Address.F3,
+			v6.Address.F4, v6.Address.F5, v6.Address.F6, v6.Address.F7,
+		} {
+			ip[i*2] = byte(seg >> 8)
+			ip[i*2+1] = byte(seg)
+		}
+		return &net.UDPAddr{IP: ip, Port: int(v6.Port)}
+	}
+	return nil
+}
+
 // mapIP converts a WASI IpAddress into a net.IP.
 func mapIP(addr sockets.IpAddress) net.IP {
 	if addr.Tag() == sockets.IpAddressIpv4 {

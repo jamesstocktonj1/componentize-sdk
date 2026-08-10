@@ -10,8 +10,8 @@ import (
 	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-// conn implements net.Conn over a WASI TCP socket.
-type conn struct {
+// tcpConn implements net.Conn over a WASI TCP socket.
+type tcpConn struct {
 	sock       *sockets.TcpSocket
 	recvStream *witTypes.StreamReader[uint8]
 	recvFuture *witTypes.FutureReader[witTypes.Result[witTypes.Unit, sockets.ErrorCode]]
@@ -20,13 +20,17 @@ type conn struct {
 	closeOnce  sync.Once
 }
 
-var _ net.Conn = (*conn)(nil)
+var _ net.Conn = (*tcpConn)(nil)
 
-func newConn(sock *sockets.TcpSocket) *conn {
+func createTcpSocket(addrFamily sockets.IpAddressFamily) (*sockets.TcpSocket, error) {
+	return newWasiSocket(sockets.TcpSocketCreate(addrFamily))
+}
+
+func newTcpConn(sock *sockets.TcpSocket) *tcpConn {
 	recvStream, recvFuture := sock.Receive()
 	sendStream, sendReader := sockets.MakeStreamU8()
 	sendFuture := sock.Send(sendReader)
-	return &conn{
+	return &tcpConn{
 		sock:       sock,
 		recvStream: recvStream,
 		recvFuture: recvFuture,
@@ -35,7 +39,7 @@ func newConn(sock *sockets.TcpSocket) *conn {
 	}
 }
 
-func (c *conn) Read(b []byte) (int, error) {
+func (c *tcpConn) Read(b []byte) (int, error) {
 	n := int(c.recvStream.Read(b))
 	if c.recvStream.WriterDropped() {
 		return n, io.EOF
@@ -43,7 +47,7 @@ func (c *conn) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-func (c *conn) Write(b []byte) (int, error) {
+func (c *tcpConn) Write(b []byte) (int, error) {
 	n := int(c.sendStream.WriteAll(b))
 	if c.sendStream.ReaderDropped() {
 		return n, io.ErrClosedPipe
@@ -51,7 +55,7 @@ func (c *conn) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-func (c *conn) Close() error {
+func (c *tcpConn) Close() error {
 	c.closeOnce.Do(func() {
 		c.sendStream.Drop()
 		c.sendFuture.Drop()
@@ -62,7 +66,7 @@ func (c *conn) Close() error {
 	return nil
 }
 
-func (c *conn) LocalAddr() net.Addr {
+func (c *tcpConn) LocalAddr() net.Addr {
 	res := c.sock.GetLocalAddress()
 	if res.IsErr() {
 		return nil
@@ -70,7 +74,7 @@ func (c *conn) LocalAddr() net.Addr {
 	return mapNetAddr(res.Ok())
 }
 
-func (c *conn) RemoteAddr() net.Addr {
+func (c *tcpConn) RemoteAddr() net.Addr {
 	res := c.sock.GetRemoteAddress()
 	if res.IsErr() {
 		return nil
@@ -78,6 +82,6 @@ func (c *conn) RemoteAddr() net.Addr {
 	return mapNetAddr(res.Ok())
 }
 
-func (c *conn) SetDeadline(t time.Time) error      { return nil }
-func (c *conn) SetReadDeadline(t time.Time) error  { return nil }
-func (c *conn) SetWriteDeadline(t time.Time) error { return nil }
+func (c *tcpConn) SetDeadline(t time.Time) error      { return nil }
+func (c *tcpConn) SetReadDeadline(t time.Time) error  { return nil }
+func (c *tcpConn) SetWriteDeadline(t time.Time) error { return nil }

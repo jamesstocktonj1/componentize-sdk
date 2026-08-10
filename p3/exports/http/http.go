@@ -3,8 +3,8 @@ package wasihttp
 import (
 	"net/http"
 
-	"github.com/jamesstocktonj1/componentize-sdk/p3/gen/export_wasi_http_handler"
-	_ "github.com/jamesstocktonj1/componentize-sdk/p3/gen/wit_exports"
+	"github.com/jamesstocktonj1/componentize-sdk/p3/exports/http/gen/export_wasi_http_handler"
+	_ "github.com/jamesstocktonj1/componentize-sdk/p3/exports/http/gen/wit_exports"
 )
 
 func Handle(h http.Handler) {

@@ -129,23 +129,29 @@ make run
 
 ### P3 variants
 
-The `hello-p3` and `client-p3` examples use the older WASI Preview 3 bindings found in `p3/`. Build and run them the same way as their non-P3 counterparts.
+The `hello-p3` and `client-p3` examples use the WASI Preview 3 bindings found in `p3/`. Build and run them the same way as their non-P3 counterparts.
 
 ## Project Structure
 
 ```
-cli/            CLI entrypoint helper (SetRun / SetRunE)
+cli/              CLI entrypoint helper (SetRun / SetRunE)
 net/
-  wasihttp/     HTTP server handler and outbound client transport
-  socket/       TCP Dial and Listen backed by WASI sockets
+  wasihttp/       HTTP server handler and outbound client transport
+  socket/         TCP Dial and Listen backed by WASI sockets
 file/
-  blobstore/    Container and object abstractions for WASI blobstore
-internal/       Shared async I/O polling and stream utilities
-gen/            Auto-generated WASI bindings (do not edit by hand)
-wit/            WIT world and interface definitions
-p3/             Bindings and examples for WASI Preview 3
-examples/       Runnable example components
+  blobstore/      Container and object abstractions for WASI blobstore
+internal/         Shared async I/O polling and stream utilities
+gen/              Auto-generated WASI bindings (do not edit by hand)
+wit/              WIT world and interface definitions
+p3/               WASI Preview 3 bindings
+  exports/
+    http/         HTTP handler export — import only when serving HTTP
+    cli/          CLI run export — import only when running as a CLI app
+  net/            P3 network abstractions (wasihttp, socket)
+examples/         Runnable example components
 ```
+
+The `p3/exports/` packages are intentionally separate modules so that importing one does not pull in the other's exports. A component that only serves HTTP only needs `p3/exports/http`; a CLI component only needs `p3/exports/cli`.
 
 ## Regenerating Bindings
 

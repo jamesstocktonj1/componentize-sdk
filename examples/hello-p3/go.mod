@@ -9,6 +9,6 @@ replace github.com/jamesstocktonj1/componentize-sdk/p3/exports/http => ../../p3/
 require github.com/jamesstocktonj1/componentize-sdk/p3/exports/http v0.0.0-00010101000000-000000000000
 
 require (
-	github.com/jamesstocktonj1/componentize-sdk/p3 v0.0.0-00010101000000-000000000000 // indirect
+	github.com/jamesstocktonj1/componentize-sdk/p3 v0.1.12 // indirect
 	go.bytecodealliance.org/pkg v0.2.3 // indirect
 )

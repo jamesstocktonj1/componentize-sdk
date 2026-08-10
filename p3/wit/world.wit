@@ -1,12 +1,29 @@
 package jamesstocktonj1:componentize-sdk-p3;
 
-world componentize-sdk-p3 {
+world sdk-imports {
   /// p3/cli
-  include wasi:cli/command@0.3.0;
+  include wasi:cli/imports@0.3.0;
   
   /// p3/net/socket
   include wasi:sockets/imports@0.3.0;
 
   /// p3/net/wasihttp
+  import wasi:http/client@0.3.0;
+  import wasi:http/types@0.3.0;
+}
+
+world export-cli {
+  /// p3/exports/cli
+  include wasi:cli/command@0.3.0;
+}
+
+world export-http {
+  /// p3/exports/http
   include wasi:http/service@0.3.0;
+}
+
+world componentize-sdk {
+  include sdk-imports;
+  include export-cli;
+  include export-http;
 }

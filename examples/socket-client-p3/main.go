@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/jamesstocktonj1/componentize-sdk/p3/net/socket"
-	"github.com/jamesstocktonj1/componentize-sdk/p3/net/wasihttp"
+	"github.com/jamesstocktonj1/componentize-sdk/p3/exports/http"
 )
 
 func init() {

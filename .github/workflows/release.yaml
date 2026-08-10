@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     outputs:
       version: ${{ steps.compute.outputs.tag }}
     steps:
@@ -35,14 +36,23 @@ jobs:
           CURRENT=${CURRENT:-v0.0.0}
           NEW=$(npx --yes semver -i ${{ inputs.bump }} ${CURRENT#v})
           echo "tag=v${NEW}" >> "$GITHUB_OUTPUT"
-      - name: Configure git
+      - name: Pin p3 version in exports modules
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          go mod edit -require=github.com/${{ github.repository }}/p3@${{ steps.compute.outputs.tag }} p3/exports/http/go.mod
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore: release ${{ steps.compute.outputs.tag }}"
+          title: "chore: release ${{ steps.compute.outputs.tag }}"
+          branch: release/${{ steps.compute.outputs.tag }}
+          base: ${{ github.ref_name }}
       - name: Create tags
         run: |
-          git tag "${{ steps.compute.outputs.tag }}"
-          git tag "p3/${{ steps.compute.outputs.tag }}"
+          git tag "${{ steps.compute.outputs.tag }}" ${{ steps.cpr.outputs.pull-request-head-sha }}
+          git tag "p3/${{ steps.compute.outputs.tag }}" ${{ steps.cpr.outputs.pull-request-head-sha }}
+          git tag "p3/exports/cli/${{ steps.compute.outputs.tag }}" ${{ steps.cpr.outputs.pull-request-head-sha }}
+          git tag "p3/exports/http/${{ steps.compute.outputs.tag }}" ${{ steps.cpr.outputs.pull-request-head-sha }}
           git push origin --tags
 
   build-examples:

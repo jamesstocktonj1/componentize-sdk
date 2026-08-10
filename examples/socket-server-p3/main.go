@@ -4,7 +4,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/jamesstocktonj1/componentize-sdk/p3/cli"
+	"github.com/jamesstocktonj1/componentize-sdk/p3/exports/cli"
 	"github.com/jamesstocktonj1/componentize-sdk/p3/net/socket"
 )
 

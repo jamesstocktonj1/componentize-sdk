@@ -1,6 +1,7 @@
 package wasihttp
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"sync"
@@ -69,14 +70,25 @@ type ErrorCodeMapper func(httpTypes.ErrorCode) error
 // http.Response.Trailer field so trailers are visible after the body is read.
 // mapErr is used to translate an error-code from the trailer future into a
 // Go error surfaced via Read/Close; if nil, trailer errors are discarded.
+//
+// ctx is the context the body was produced under (typically the originating
+// request's context). Read races the underlying (blocking) stream read
+// against ctx.Done, so a slow/stalled response body stops delivering data to
+// the caller as soon as the context is cancelled or its deadline expires,
+// the same way a cancelled net/http response body does.
 func NewBodyReader(
+	ctx context.Context,
 	stream *witTypes.StreamReader[uint8],
 	trailersFut *witTypes.FutureReader[witTypes.Result[witTypes.Option[*httpTypes.Fields], httpTypes.ErrorCode]],
 	fut *witTypes.FutureWriter[witTypes.Result[witTypes.Unit, httpTypes.ErrorCode]],
 	trailerMap http.Header,
 	mapErr ErrorCodeMapper,
 ) io.ReadCloser {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return &bodyReader{
+		ctx:         ctx,
 		stream:      stream,
 		trailersFut: trailersFut,
 		fut:         fut,
@@ -86,6 +98,7 @@ func NewBodyReader(
 }
 
 type bodyReader struct {
+	ctx         context.Context
 	stream      *witTypes.StreamReader[uint8]
 	trailersFut *witTypes.FutureReader[witTypes.Result[witTypes.Option[*httpTypes.Fields], httpTypes.ErrorCode]]
 	fut         *witTypes.FutureWriter[witTypes.Result[witTypes.Unit, httpTypes.ErrorCode]]
@@ -93,11 +106,47 @@ type bodyReader struct {
 	mapErr      ErrorCodeMapper
 	headerOnce  sync.Once
 	trailerErr  error
+	cancelErr   error
 }
 
 var _ io.ReadCloser = (*bodyReader)(nil)
 
 func (s *bodyReader) Read(p []byte) (int, error) {
+	if s.cancelErr != nil {
+		return 0, s.cancelErr
+	}
+
+	done := s.ctx.Done()
+	if done == nil {
+		return s.read(p)
+	}
+
+	type result struct {
+		n   int
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		n, err := s.read(p)
+		ch <- result{n, err}
+	}()
+
+	select {
+	case res := <-ch:
+		return res.n, res.err
+	case <-done:
+		// The read above is still blocked in the background - the WASI
+		// bindings offer no way to abort an in-flight stream read - and it
+		// now owns the stream's handle, so further Reads must not touch the
+		// stream and instead keep returning this error.
+		s.cancelErr = s.ctx.Err()
+		return 0, s.cancelErr
+	}
+}
+
+// read performs the actual (blocking) stream read. It must never run
+// concurrently with itself on the same bodyReader.
+func (s *bodyReader) read(p []byte) (int, error) {
 	n := int(s.stream.Read(p))
 
 	if s.stream.WriterDropped() {

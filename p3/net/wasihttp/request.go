@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	httpTypes "github.com/jamesstocktonj1/componentize-sdk/p3/gen/wasi_http_types"
 	internalhttp "github.com/jamesstocktonj1/componentize-sdk/p3/internal/wasihttp"
@@ -13,8 +12,9 @@ import (
 
 // parseHttpRequest builds a WASI request and returns a finish function that
 // must be run concurrently with Send (via goroutine) to write the body and
-// trailers into the stream after the runtime has opened it.
-func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureReader[witTypes.Result[witTypes.Unit, httpTypes.ErrorCode]], func(), error) {
+// trailers into the stream after the runtime has opened it. opts carries the
+// caller-configured (Transport) request options, if any.
+func parseHttpRequest(req *http.Request, opts witTypes.Option[*httpTypes.RequestOptions]) (*httpTypes.Request, *witTypes.FutureReader[witTypes.Result[witTypes.Unit, httpTypes.ErrorCode]], func(), error) {
 	f, err := internalhttp.MapHttpHeaders(req.Header)
 	if err != nil {
 		return nil, nil, nil, err
@@ -32,7 +32,6 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 		body = internalhttp.NewBodyWriter(nil, trailerWriter, req.Trailer)
 	}
 
-	opts := requestOptionsFromContext(req)
 	res, futureRead := httpTypes.RequestNew(f, someBody, trailerReader, opts)
 
 	if res.SetMethod(internalhttp.MapMethodToWasi(req.Method)).IsErr() {
@@ -63,30 +62,4 @@ func parseHttpRequest(req *http.Request) (*httpTypes.Request, *witTypes.FutureRe
 	}
 
 	return res, futureRead, finish, nil
-}
-
-// requestOptionsFromContext derives WASI request options from the request's
-// context deadline, if any, so the host enforces the same deadline the
-// caller set via context.WithTimeout/WithDeadline instead of only relying on
-// RoundTrip abandoning the request client-side once the deadline passes.
-func requestOptionsFromContext(req *http.Request) witTypes.Option[*httpTypes.RequestOptions] {
-	deadline, ok := req.Context().Deadline()
-	if !ok {
-		return witTypes.None[*httpTypes.RequestOptions]()
-	}
-
-	timeout := time.Until(deadline)
-	if timeout < 0 {
-		timeout = 0
-	}
-	duration := witTypes.Some(uint64(timeout))
-
-	options := httpTypes.MakeRequestOptions()
-	// Best-effort: a host that doesn't support these options still gets a
-	// working request, since RoundTrip also cancels client-side via ctx.Done.
-	options.SetConnectTimeout(duration)
-	options.SetFirstByteTimeout(duration)
-	options.SetBetweenBytesTimeout(duration)
-
-	return witTypes.Some(options)
 }

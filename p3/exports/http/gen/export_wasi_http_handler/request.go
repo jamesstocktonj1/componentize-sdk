@@ -1,6 +1,7 @@
 package export_wasi_http_handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -54,5 +55,5 @@ func newRequestBodyTrailer(request *httpTypes.Request) (io.ReadCloser, http.Head
 	stream, trailersFut := httpTypes.RequestConsumeBody(request, read)
 
 	trailerMap := http.Header{}
-	return internalhttp.NewBodyReader(stream, trailersFut, fut, trailerMap, nil), trailerMap
+	return internalhttp.NewBodyReader(context.Background(), stream, trailersFut, fut, trailerMap, nil), trailerMap
 }

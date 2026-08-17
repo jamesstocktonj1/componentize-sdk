@@ -1,6 +1,7 @@
 package wasihttp
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -16,7 +17,7 @@ func parseHttpResponse(req *http.Request, resp *httpTypes.Response) (*http.Respo
 		header.Add(v.F0, string(v.F1))
 	}
 
-	body, trailer := newResponseBodyTrailer(resp)
+	body, trailer := newResponseBodyTrailer(req.Context(), resp)
 	return &http.Response{
 		StatusCode: statusCode,
 		Header:     header,
@@ -26,10 +27,10 @@ func parseHttpResponse(req *http.Request, resp *httpTypes.Response) (*http.Respo
 	}, nil
 }
 
-func newResponseBodyTrailer(resp *httpTypes.Response) (io.ReadCloser, http.Header) {
+func newResponseBodyTrailer(ctx context.Context, resp *httpTypes.Response) (io.ReadCloser, http.Header) {
 	fut, read := httpTypes.MakeFutureResultUnitErrorCode()
 	stream, trailersFut := httpTypes.ResponseConsumeBody(resp, read)
 
 	trailerMap := http.Header{}
-	return internalhttp.NewBodyReader(stream, trailersFut, fut, trailerMap, mapErrorCode), trailerMap
+	return internalhttp.NewBodyReader(ctx, stream, trailersFut, fut, trailerMap, mapErrorCode), trailerMap
 }

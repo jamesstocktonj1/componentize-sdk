@@ -2,13 +2,55 @@ package wasihttp
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/jamesstocktonj1/componentize-sdk/p3/gen/wasi_http_client"
+	httpTypes "github.com/jamesstocktonj1/componentize-sdk/p3/gen/wasi_http_types"
+	witTypes "go.bytecodealliance.org/pkg/wit/types"
 )
 
-type Transport struct{}
+// Transport is an http.RoundTripper backed by wasi:http/outgoing-handler.
+//
+// The timeout fields below are sent to the WASI host as request options, so
+// the host itself can enforce them (e.g. abort a stalled connection) rather
+// than relying solely on client-side cancellation via the request's
+// context. A zero value leaves the corresponding timeout unset, so the host
+// applies its own default. These are independent of, and not derived from,
+// the request's context deadline.
+type Transport struct {
+	// ConnectTimeout bounds how long the host may spend establishing the
+	// underlying connection.
+	ConnectTimeout time.Duration
+	// FirstByteTimeout bounds how long the host may wait for the first
+	// byte of the response after the request has been sent.
+	FirstByteTimeout time.Duration
+	// BetweenBytesTimeout bounds how long the host may wait between
+	// successive chunks of the response body.
+	BetweenBytesTimeout time.Duration
+}
 
 var _ http.RoundTripper = (*Transport)(nil)
+
+// requestOptions builds WASI request options from the Transport's configured
+// timeouts. It returns None if none are set, leaving the host's defaults in
+// place.
+func (t *Transport) requestOptions() witTypes.Option[*httpTypes.RequestOptions] {
+	if t.ConnectTimeout <= 0 && t.FirstByteTimeout <= 0 && t.BetweenBytesTimeout <= 0 {
+		return witTypes.None[*httpTypes.RequestOptions]()
+	}
+
+	options := httpTypes.MakeRequestOptions()
+	if t.ConnectTimeout > 0 {
+		options.SetConnectTimeout(witTypes.Some(uint64(t.ConnectTimeout)))
+	}
+	if t.FirstByteTimeout > 0 {
+		options.SetFirstByteTimeout(witTypes.Some(uint64(t.FirstByteTimeout)))
+	}
+	if t.BetweenBytesTimeout > 0 {
+		options.SetBetweenBytesTimeout(witTypes.Some(uint64(t.BetweenBytesTimeout)))
+	}
+	return witTypes.Some(options)
+}
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
@@ -17,7 +59,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	// parse request
-	request, futureRead, finish, err := parseHttpRequest(req)
+	request, futureRead, finish, err := parseHttpRequest(req, t.requestOptions())
 	if err != nil {
 		return nil, err
 	}
